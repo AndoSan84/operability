@@ -763,7 +763,7 @@ def run_experiment(n_per_medium: int, model: str,
 
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     model_slug = re.sub(r'[/:\s]', '_', model)
-    outdir = Path("maze_keys_doors_replication") / f"hexform_results_{ts}_{model_slug}"
+    outdir = Path(__file__).parent / "results" / f"hexform_results_{ts}_{model_slug}"
     outdir.mkdir(parents=True, exist_ok=True)
     log_path = outdir / "trials.jsonl"
     print(f"\n=== Hexform Experiment ===")
