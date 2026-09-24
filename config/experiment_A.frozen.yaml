@@ -64,12 +64,12 @@ branching:
 feedback_blocks:
   invalid_schedule:
     binary: "It did not produce a valid schedule."
-    diagnostic: "The schedule it produced violates:\n{VIOLATIONS}\nClingo output: {SOLVER_OUTPUT_TRUNCATED}"
+    diagnostic: "The schedule it produced violates:\n{{VIOLATIONS}}\nClingo output: {{SOLVER_OUTPUT_TRUNCATED}}"
   no_answer_set:
     binary: "It did not produce a valid schedule."
-    diagnostic: "Clingo found no answer set (unsatisfiable, or no start/2 atoms).\nClingo output: {SOLVER_OUTPUT_TRUNCATED}"
-  syntax_error: {both: "{SOLVER_ERROR}"}
-  solver_timeout: {both: "{SOLVER_TIMEOUT_MESSAGE}"}
+    diagnostic: "Clingo found no answer set (unsatisfiable, or no start/2 atoms).\nClingo output: {{SOLVER_OUTPUT_TRUNCATED}}"
+  syntax_error: {both: "{{SOLVER_ERROR}}"}
+  solver_timeout: {both: "{{SOLVER_TIMEOUT_MESSAGE}}"}
   unparsable: {both: "Your reply contained no clingo code block."}
 
 budget:
