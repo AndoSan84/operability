@@ -1,0 +1,112 @@
+# Experiment B — frozen configuration.
+#
+# Every degree of freedom that could move the numbers is fixed here, as a value or as a rule.
+# This file is committed BEFORE the first run and is never edited in place. A change means:
+# bump config_version, write a new file, new results file. Results are append-only per config
+# hash. The orchestrator MUST NOT edit this file to make a gate pass.
+
+config_version: 1
+experiment: B_context_strip
+spec: experiment-B-context-strip.md
+
+model:
+  # No alias may be used. The runner resolves a concrete dated snapshot at run start, records it
+  # in every result row, and aborts if the resolved id is an alias or differs between cells.
+  selection_rule: |
+    List the models available to the API key. Select the vendor's current general-purpose
+    mid-tier model (not the smallest, not the research/flagship tier), take its most recent
+    dated snapshot id, and use it for every call of the run.
+  pinned_snapshot: null        # filled by the runner at run start, then immutable for the run
+  thinking: disabled            # if the model cannot disable it, record the minimum effort level
+  temperature: 1.0
+  max_output_tokens: 4096
+  identical_across_cells: true
+
+grader_model:
+  # Used only for A-probe grading, in a separate session, blind to cell.
+  selection_rule: same as model.selection_rule
+  pinned_snapshot: null
+
+domains: [maze, asp]
+
+cells: [nl_full, nl_strip, form_full, form_strip_verbatim, form_strip_para]
+
+instances:
+  seed: 20260924
+  n_pilot: 10
+  n_full: 70
+  generated_once: true
+  path: instances/           # one JSON per domain, committed
+  hash_file: instances/INSTANCES.sha256   # verified at every run start
+
+calibration:
+  # Difficulty is calibrated on phase-1 success only. Phase 1 is identical across cells within a
+  # medium and precedes the manipulation, so it enters no hypothesis.
+  measured_on: phase1_success_per_medium
+  target_band: [0.80, 0.97]
+  grid:
+    maze: [[10, 2], [12, 3], [12, 4], [14, 4], [14, 5]]     # [grid_size, n_keys]
+    asp: [[10, 3, 10], [12, 3, 12], [14, 4, 14], [16, 4, 16]]  # [n_jobs, n_machines, n_precedences]
+  rule: |
+    Run 8 instances per grid point, ascending, for both media. Select the largest grid point at
+    which BOTH media fall inside the target band. If none qualifies, select the point with the
+    smallest distance to the band and record that the band was not met. Maximum one pass over
+    the grid; no manual adjustment.
+  log: results/calibration.jsonl
+
+paraphrase:
+  budget_words_rule: |
+    median word count of the phase-1 artifacts produced in the pilot for that domain, rounded up
+    to the nearest 10, minimum 60. Computed once from the pilot, then frozen for the full run.
+  budget_words: null           # filled from the pilot, then immutable
+  must_not_contain_code: true  # enforced by a checker: no fenced blocks, no literal identifiers
+
+probes:
+  per_instance: {C: 1, A: 1, U: 1}
+  separate_calls: true         # each probe is its own API call on the same constructed context
+  c_probe_balance: 0.5         # half the C-probes have ground truth "yes", half "no", by construction
+  u_probe_skip_if_no_alternative: true
+
+retries:
+  phase1_max_attempts: 3
+  phase2_attempts: 1
+  parse_failure_policy: outcome      # a parse failure is an outcome, never a re-prompt
+  api_error_policy:
+    max_retries: 3
+    backoff_seconds: [5, 20, 60]
+    on_exhaustion: record_outcome_api_error
+  timeout_seconds: 180               # recorded as outcome 'timeout', distinct from max_tokens
+
+inclusion:
+  rule: an instance enters the analysis iff every cell produced a valid phase-1 solution for it
+  applied: automatically, before phase 2
+  report_exclusion_rate: true
+
+gates:
+  preflight:
+    validators_agree_with_reference: 1.00
+    parser_fixtures_pass: 1.00
+    canonical_state_valid: 1.00
+    context_template_match: 1.00     # leakage check, byte-exact
+  pilot:
+    max_parse_failure_rate_per_cell: 0.05
+    max_api_error_rate_per_cell: 0.05
+    max_timeout_rate_per_cell: 0.05
+    c_probe_spread_max: 0.20         # crude flatness check at pilot size
+    paraphrase_contains_code: 0.00
+  full_run:
+    c_probe_flatness: no pairwise difference significant at alpha=0.05 after Holm
+    # A violation does not abort: it flags the run as confounded, and the report must state that
+    # the medium comparisons are uninterpretable.
+
+budget:
+  max_usd: 150
+  max_wall_hours: 12
+  on_exceed: stop_and_report
+
+analysis:
+  script: analysis/analyze_experiment_B.py
+  committed_before_full_run: true
+  sha256: null                # recorded at pilot time; the runner aborts if it changes afterwards
+  alpha: 0.05
+  multiple_comparison: holm

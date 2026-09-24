@@ -1,0 +1,5 @@
+# read-only clone, pinned by commit in config/experiment_B.frozen.yaml (vendor.operability.commit)
+vendor/
+.venv/
+__pycache__/
+.pytest_cache/
