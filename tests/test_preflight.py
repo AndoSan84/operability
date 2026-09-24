@@ -20,6 +20,9 @@ harness.domains.maze : generate_instances(seed, n, params), validate(instance, s
 harness.domains.asp  : same interface
 harness.strip        : build_context(cell, instance, phase1_record, paraphrase=None) -> list[dict]
 harness.schema       : REQUIRED_FIELDS, OUTCOMES, validate_row(row)
+harness.probes       : applies_to(kind) -> set of cells
+harness.contamination: PATTERNS, scan(text) -> list of matched patterns
+harness.strip        : also render_inline(messages) -> str, the single user message the CLI gets
 """
 
 import json
@@ -197,14 +200,75 @@ def test_outcomes_are_disjoint_and_complete():
 
 def test_every_row_records_the_resolved_model_and_cost():
     for field in ("model_id", "thinking", "temperature", "stop_reason",
-                  "input_tokens", "output_tokens", "messages_sha256"):
+                  "input_tokens", "output_tokens", "messages_sha256", "medium", "probe_id",
+                  "backend", "backend_version", "contaminated", "contamination_matches"):
         assert field in schema.REQUIRED_FIELDS
 
 
 def test_model_id_is_a_pinned_snapshot():
-    for alias in ("sonnet", "opus", "haiku", "latest", "gpt-5", "gemini-flash"):
+    for alias in ("sonnet", "opus", "haiku", "latest", "gpt-5", "gemini-flash",
+                  "claude-3-5-sonnet-latest", "default"):
         assert not schema.is_pinned_snapshot(alias), f"{alias} is an alias, not a snapshot"
     assert schema.is_pinned_snapshot("claude-sonnet-4-5-20250929")
+    # the vendor's current ids carry no date: a full id is pinned, a family alias is not (C8)
+    assert schema.is_pinned_snapshot("claude-sonnet-5")
+
+
+# ---------------------------------------------------------------- CLI backend (C8)
+
+CONTAMINATED = [
+    "I don't have access to a code execution environment.",
+    "Let me run this with the Bash tool.",
+    "<function_calls>",
+    "I cannot execute the program here.",
+    "I'll run it now.",
+    "It depends on the working directory.",
+]
+CLEAN = [
+    "FINAL PATH: [(0,0), (0,1)]",
+    "```python\nprint(\"FINAL PATH: []\")\n```",
+    "SCHEDULE: {1: 0}",
+    "Job 3 must run after job 2 finishes.",
+    "The program reads the grid and runs a BFS.",
+    "CANNOT DETERMINE.",
+    "Collected keys are stored as a frozenset; the path is rebuilt from a parent map.",
+]
+
+
+def test_contamination_patterns_are_the_frozen_ones():
+    import yaml
+    from harness import contamination
+    cfg = yaml.safe_load(open("config/experiment_B.frozen.yaml"))["contamination"]
+    assert list(contamination.PATTERNS) == cfg["patterns_case_insensitive"]
+
+
+@pytest.mark.parametrize("text", CONTAMINATED)
+def test_contamination_flags_tool_file_execution_talk(text):
+    from harness import contamination
+    assert contamination.scan(text)
+
+
+@pytest.mark.parametrize("text", CLEAN)
+def test_contamination_leaves_task_answers_alone(text):
+    from harness import contamination
+    assert not contamination.scan(text)
+
+
+@pytest.mark.parametrize("name", list(DOMAINS))
+def test_inline_rendering_is_verbatim_ordered_and_cell_blind(name):
+    """The CLI cannot carry a harness-built assistant turn (C8), so the message list is rendered
+    into one user message. Every turn must survive byte-exact and in order, and the rendering
+    must not depend on the cell."""
+    mod = DOMAINS[name]
+    inst = mod.generate_instances(seed=SEED, n=1, params="pilot")[0]
+    record = mod.fake_phase1_record(inst, mod.reference_solver(inst))
+    for cell in CELLS:
+        messages = strip.build_context(cell, inst, record, paraphrase="A prose description.")
+        messages = messages + [{"role": "user", "content": "PHASE-2 PROMPT"}]
+        rendered = strip.render_inline(messages)
+        assert rendered == strip.render_inline(messages)
+        pos = [rendered.index(m["content"]) for m in messages]
+        assert pos == sorted(pos)
 
 
 # ---------------------------------------------------------------- pilot gates
@@ -224,13 +288,67 @@ def test_pilot_error_rates(metric, limit):
 
 @pytest.mark.skipif(GATES is None, reason="run after the pilot")
 def test_pilot_control_probes_are_flat():
-    acc = GATES["c_probe_accuracy"]
-    assert max(acc.values()) - min(acc.values()) <= 0.20, (
-        "control probes differ across cells: the media are not matched and the design is "
-        "confounded. Stop and report; do not tune.")
+    for domain, acc in GATES["c_probe_accuracy"].items():
+        assert max(acc.values()) - min(acc.values()) <= 0.20, (
+            f"{domain}: control probes differ across cells: the media are not matched and the "
+            f"design is confounded. Stop and report; do not tune.")
 
 
 @pytest.mark.skipif(GATES is None, reason="run after the pilot")
-def test_pilot_phase1_success_in_band():
-    for medium, value in GATES["phase1_success"].items():
-        assert 0.80 <= value <= 0.97, f"{medium}: phase-1 success {value:.2f} outside the band"
+def test_pilot_control_probes_above_floor():
+    """Flatness passes on uniformly broken data; a floor does not.
+
+    C-probes are answerable from the canonical solution alone and balanced by construction, so
+    chance is 0.50. Pooled accuracy below 0.70 in a domain means either the canonical state never
+    reached the context or the pipeline is broken; in neither case is the full run meaningful.
+    """
+    for domain, (k, n) in GATES["c_probe_pooled"].items():
+        assert n > 0 and k / n >= 0.70, (
+            f"{domain}: pooled C-probe accuracy {k}/{n} is below the 0.70 floor")
+
+
+@pytest.mark.skipif(GATES is None, reason="run after the pilot")
+def test_pilot_paraphrases_contain_no_code():
+    for domain, value in GATES["paraphrase_contains_code"].items():
+        assert value == 0.0, f"{domain}: {value:.0%} of paraphrases contain code"
+
+
+@pytest.mark.skipif(GATES is None, reason="run after the pilot")
+def test_pilot_inclusion_rate():
+    """Instance supply is elastic (n_target_included), so this only catches a real collapse:
+    it fails iff the 95% Wilson UPPER bound of the inclusion rate is below 0.60."""
+    for domain, g in GATES["inclusion"].items():
+        k, n = g["included"], g["attempted"]
+        z = 1.96
+        p = k / n
+        centre = (p + z * z / (2 * n)) / (1 + z * z / n)
+        half = z * (p * (1 - p) / n + z * z / (4 * n * n)) ** 0.5 / (1 + z * z / n)
+        upper = min(1.0, centre + half)
+        assert upper >= 0.60, (
+            f"{domain}: {k}/{n} instances valid in both media (Wilson upper {upper:.2f}); "
+            f"the paired design would collapse")
+
+
+@pytest.mark.skipif(GATES is None, reason="run after the pilot")
+def test_pilot_matches_calibration():
+    """A pilot that does not behave like its own calibration means something changed.
+
+    Deliberately underpowered: 8 calibration vs 10 pilot instances cannot detect a modest shift
+    in difficulty, and is not meant to. This is a smoke detector for a changed pipeline (a
+    different model, a broken prompt), not a test of difficulty. Fisher exact, two-sided,
+    fails only at p < 0.01, per domain and medium.
+    """
+    from scipy.stats import fisher_exact
+    for key, (pil_k, pil_n) in GATES["phase1_counts"].items():
+        cal_k, cal_n = GATES["calibration_counts"][key]
+        _, p = fisher_exact([[cal_k, cal_n - cal_k], [pil_k, pil_n - pil_k]])
+        assert p >= 0.01, (
+            f"{key}: pilot phase-1 success {pil_k}/{pil_n} vs calibrated {cal_k}/{cal_n}, "
+            f"Fisher p={p:.4f}")
+
+
+def test_a_probes_are_formal_only():
+    from harness import probes
+    assert probes.applies_to("A") == {"form_full", "form_strip_verbatim", "form_strip_para"}
+    assert probes.applies_to("C") == set(CELLS)
+    assert probes.applies_to("U") == set(CELLS)

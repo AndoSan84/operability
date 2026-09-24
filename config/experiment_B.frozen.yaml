@@ -6,21 +6,64 @@
 # hash. The orchestrator MUST NOT edit this file to make a gate pass.
 
 config_version: 1
+status: design_not_run   # pre-registered and costed (~2,400 calls per domain), not run: the budget
+                         # available covers one experiment, and it goes to Experiment A. Future
+                         # work. See AMENDMENTS-v3.md, C9.
 experiment: B_context_strip
 spec: experiment-B-context-strip.md
 
 model:
-  # No alias may be used. The runner resolves a concrete dated snapshot at run start, records it
-  # in every result row, and aborts if the resolved id is an alias or differs between cells.
+  # No alias may be used. The requested id is a full model id, dated wherever the vendor dates
+  # it; the resolved id is read back from every call and the run aborts if it is an alias, differs
+  # from the requested id, or differs between cells. See AMENDMENTS-v3.md, C8.
   selection_rule: |
-    List the models available to the API key. Select the vendor's current general-purpose
-    mid-tier model (not the smallest, not the research/flagship tier), take its most recent
-    dated snapshot id, and use it for every call of the run.
+    List the models the backend can reach. Select the vendor's current general-purpose mid-tier
+    model (not the smallest, not the research/flagship tier). Use its full model id, taking the
+    most recent dated snapshot where the vendor publishes dated snapshots, and never an alias.
+    Use it for every call of the run.
   pinned_snapshot: null        # filled by the runner at run start, then immutable for the run
-  thinking: disabled            # if the model cannot disable it, record the minimum effort level
-  temperature: 1.0
-  max_output_tokens: 4096
+  backend: claude_cli          # the only backend of the reported run (constraint, see C8);
+                               # harness/models.py also implements `api`, for replication
+  backend_version: null        # `claude --version` at run start; abort if it changes mid-run
+  thinking: minimum            # --effort low, the lowest level the CLI accepts; recorded per row
+  temperature: backend_default # not settable through the CLI; recorded as such
+  max_output_tokens: backend_default   # not settable through the CLI; stop reason still recorded
   identical_across_cells: true
+  cli:
+    # Every call: fresh empty temporary working directory, deleted afterwards; no CLAUDE.md, no
+    # project memory, no settings file with allow rules. Flags, verbatim:
+    flags: >-
+      -p --input-format text --output-format stream-json --verbose
+      --model {pinned_snapshot} --effort low
+      --tools "" --permission-mode dontAsk --strict-mcp-config --setting-sources ""
+      --disable-slash-commands --system-prompt "You are a helpful assistant."
+    system_prompt: replaced    # --system-prompt replaces the agent prompt, but the CLI keeps an
+                               # agent-identity prefix and injects environment, model identity,
+                               # date and account context (canary, C8). Constant across cells;
+                               # declared as part of the condition.
+    structural_checks:         # any violation aborts the run; these are not rates
+      init_tools_empty: true   # the init event lists no tools
+      init_mcp_servers_empty: true
+      num_turns: 1             # one model turn per call, no tool round-trips
+      no_tool_use_blocks: true
+      resolved_model_equals_requested: true   # from the init event and the session transcript
+  context_rendering: inline    # see C8: the harness-built message list is rendered into one user
+                               # message by strip.render_inline, identical in every cell
+  identical_rendering_across_cells: true
+
+contamination:
+  # First-class measure: every response is scanned, the flag is stored in the row
+  # (`contaminated`, `contamination_matches`), and the rate is a result column per cell.
+  scope: every response of every phase
+  patterns_case_insensitive:
+    - '<\s*(function_calls|invoke|tool_use|tool_result)\b'
+    - '\b(bash|read|write|edit|glob|grep|webfetch|websearch|todowrite|notebookedit|task)\s+tool\b'
+    - '\b(use|call|invoke|using)\s+(a|the|my)?\s*tools?\b'
+    - '\b(i\s+(do\s+not|don''t|cannot|can''t)|unable\s+to)\s+(have\s+access\s+to|access|run|execute|open|read)\b'
+    - '\b(let\s+me|i''ll|i\s+will)\s+(run|execute)\b'
+    - '\b(file\s*system|working\s+directory|current\s+directory|claude\.md)\b'
+  pilot_gate_max_per_cell: 0.02   # above this in any cell: PILOT_BLOCKED, find the cause first
+  full_run: reported per cell, not gated
 
 grader_model:
   # Used only for A-probe grading, in a separate session, blind to cell.
@@ -33,8 +76,10 @@ cells: [nl_full, nl_strip, form_full, form_strip_verbatim, form_strip_para]
 
 instances:
   seed: 20260924
+  calibration_seed: 20260925    # distinct stream; calibration instances are discarded
   n_pilot: 10
-  n_full: 70
+  n_target_included: 70        # phase 1 proceeds down the frozen instance list until reached
+  n_max_generated: 120         # hard cap; if reached without the target, stop and report
   generated_once: true
   path: instances/           # one JSON per domain, committed
   hash_file: instances/INSTANCES.sha256   # verified at every run start
@@ -53,6 +98,7 @@ calibration:
     smallest distance to the band and record that the band was not met. Maximum one pass over
     the grid; no manual adjustment.
   log: results/calibration.jsonl
+  band_is_a_target_not_a_gate: true
 
 paraphrase:
   budget_words_rule: |
@@ -62,7 +108,10 @@ paraphrase:
   must_not_contain_code: true  # enforced by a checker: no fenced blocks, no literal identifiers
 
 probes:
-  per_instance: {C: 1, A: 1, U: 1}
+  per_instance: {C: 1, U: 3, A: 1}
+  u_probe_pool_size: 4          # 3 drawn per instance, deterministically from the frozen seed
+  u_probe_min_issued: 2         # below this the instance is excluded from H4 only
+  a_probe_cells: [form_full, form_strip_verbatim, form_strip_para]
   separate_calls: true         # each probe is its own API call on the same constructed context
   c_probe_balance: 0.5         # half the C-probes have ground truth "yes", half "no", by construction
   u_probe_skip_if_no_alternative: true
@@ -75,7 +124,16 @@ retries:
     max_retries: 3
     backoff_seconds: [5, 20, 60]
     on_exhaustion: record_outcome_api_error
-  timeout_seconds: 180               # recorded as outcome 'timeout', distinct from max_tokens
+  pilot_timeout_seconds: 600         # generous, so the pilot latency p99 is not censored
+  timeout_seconds_rule: |
+    max(180, ceil(2 x pilot p99 latency)), computed once from the pilot and frozen, like
+    paraphrase.budget_words. A wall-clock kill is outcome 'timeout'; a reply cut by the output
+    limit is 'max_tokens'. The two are never merged.
+  timeout_seconds: null              # filled from the pilot, then immutable
+  usage_limit_policy: |
+    A subscription usage-limit rejection is not a model call: the runner waits for the reset and
+    re-issues the same call. The rejection and the wait go to results/runner.log, not to
+    results.jsonl, and never count toward api_error.
 
 inclusion:
   rule: an instance enters the analysis iff every cell produced a valid phase-1 solution for it
@@ -93,20 +151,51 @@ gates:
     max_api_error_rate_per_cell: 0.05
     max_timeout_rate_per_cell: 0.05
     c_probe_spread_max: 0.20         # crude flatness check at pilot size
+    c_probe_floor: 0.70              # pooled per domain; chance is 0.50 by construction, so near
+                                     # chance means the canonical state did not reach the context
+                                     # or the pipeline is broken. Full run: reported, not a gate.
     paraphrase_contains_code: 0.00
+    min_inclusion_rate_ci_upper: 0.60   # stop only if the 95% Wilson UPPER bound is below 0.60
+    calibration_consistency_test: fisher_exact_two_sided
+    calibration_consistency_alpha: 0.01   # per check; 4 checks (2 domains x 2 media)
   full_run:
     c_probe_flatness: no pairwise difference significant at alpha=0.05 after Holm
     # A violation does not abort: it flags the run as confounded, and the report must state that
     # the medium comparisons are uninterpretable.
 
 budget:
-  max_usd: 150
-  max_wall_hours: 12
+  max_usd: 150                 # on the subscription backend cost_usd is the CLI's notional figure
+  max_wall_hours: 12           # active time; waits for usage-limit resets are excluded and logged
   on_exceed: stop_and_report
 
 analysis:
   script: analysis/analyze_experiment_B.py
   committed_before_full_run: true
-  sha256: null                # recorded at pilot time; the runner aborts if it changes afterwards
+  sha256: f12a7751c6605e5d1f4902e91a50f3fd48dc498b8be5d28267a858e47ce53bc0  # recorded at the pre-registration commit; the runner aborts on mismatch
   alpha: 0.05
   multiple_comparison: holm
+  mei_pp: 0.10
+  mei_grade: 0.25
+  one_sided: true
+  lambda_threshold: 0.5
+  tost_margin: 0.15
+  bootstrap: {reps: 10000, seed: 20260924}
+
+a_probe:
+  fingerprint_fields:
+    maze: [key_set_representation, path_reconstruction]
+    asp: [time_horizon_bound, overlap_encoding]
+  fingerprint_session: blind          # sees the artifact only, never a cell or a probe answer
+  gate_modal_share_max: 0.80          # if one value covers more than 80% of artifacts, the probe
+                                      # does not discriminate
+  fallback_order:                     # used once, automatically, and recorded
+    maze: [frontier_order, duplicate_state_handling]
+    asp: [start_time_selection_rule, objective_or_deadline_handling]
+  on_second_failure: drop A-probes and report H2b as not testable
+
+vendor:
+  operability:
+    url: https://github.com/AndoSan84/operability.git
+    commit: e7e7a05031bc7ce2dd15d5f735eefbbfaa778886
+    path: vendor/operability
+    read_only: true
