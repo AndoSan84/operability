@@ -47,3 +47,15 @@ def test_recorded_sha256_matches_the_analysis_script():
     cfg = yaml.safe_load(open(CFG))
     digest = hashlib.sha256(open(SCRIPT, "rb").read()).hexdigest()
     assert cfg["analysis"]["sha256"] == digest, "the analysis script changed after the freeze"
+
+
+def test_v2_differs_from_v1_only_where_declared():
+    v1 = yaml.safe_load(open(CFG))
+    v2 = yaml.safe_load(open("config/experiment_A_v2.frozen.yaml"))
+    assert v2["config_version"] == 2 and v2["model"]["confirmatory"] == "claude-haiku-4-5-20251001"
+    assert v2["analysis"] == v1["analysis"]            # same decision rules, same script sha256
+    for key in ("branching", "feedback_blocks", "calibration", "contamination", "gates", "batches"):
+        if key == "calibration":
+            assert {k: v for k, v in v2[key].items() if k != "log"} == {k: v for k, v in v1[key].items() if k != "log"}
+        else:
+            assert v2[key] == v1[key], key

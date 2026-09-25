@@ -34,13 +34,21 @@ import yaml
 from harness import asp_domain, contamination, parsers, prompts_A
 
 ROOT = Path(__file__).resolve().parent.parent
-CFG_PATH = ROOT / "config/experiment_A.frozen.yaml"
-CFG = yaml.safe_load(open(CFG_PATH))
-CONFIG_HASH = hashlib.sha256(CFG_PATH.read_bytes()).hexdigest()
-ELIGIBLE = set(CFG["branching"]["eligible"])
-INFRA = set(CFG["branching"]["infrastructure"])
 ARMS = ("binary", "diagnostic")
-CLINGO_TIMEOUT = CFG["branching"]["clingo_timeout_seconds"]
+
+
+def set_config(path):
+    """Load a frozen config; every stage reads these globals."""
+    global CFG_PATH, CFG, CONFIG_HASH, ELIGIBLE, INFRA, CLINGO_TIMEOUT
+    CFG_PATH = Path(path)
+    CFG = yaml.safe_load(open(CFG_PATH))
+    CONFIG_HASH = hashlib.sha256(CFG_PATH.read_bytes()).hexdigest()
+    ELIGIBLE = set(CFG["branching"]["eligible"])
+    INFRA = set(CFG["branching"]["infrastructure"])
+    CLINGO_TIMEOUT = CFG["branching"]["clingo_timeout_seconds"]
+
+
+set_config(ROOT / "config/experiment_A.frozen.yaml")
 PILOT_TIMEOUT = 600          # C8: generous, so the pilot latency p99 is not censored
 MAX_CONSECUTIVE_API_ERRORS = 3
 
@@ -231,8 +239,10 @@ def run_feedback_module(run, file, module, instances, budget, *, timeout_s, targ
             if stop_rule and n_a1 >= 20 and wilson_upper(n_elig, n_a1) * max_attempt1 < target:
                 (run.out / f"{module}_STOPPED.md").write_text(
                     f"# {module} stopped: no material\n\n{n_elig} eligible failures in {n_a1} "
-                    f"attempt-1 instances; Wilson upper bound x {max_attempt1} < {target}. The regime "
-                    f"is the symbolic bottleneck (spec §3).\n")
+                    f"attempt-1 instances; Wilson upper bound x {max_attempt1} < {target}: the "
+                    f"contrast has no material (spec §3). Attempt-1 outcomes: "
+                    f"{dict(__import__('collections').Counter(f['outcome'] for f in firsts if done(f)))}"
+                    f" — a ceiling if nearly all are valid, the symbolic bottleneck if they do not run.\n")
                 raise Stop(f"{module}: stop rule fired, {module}_STOPPED.md written")
             remaining = [i["id"] for i in instances if i["id"] not in started]
             if not remaining:
@@ -417,9 +427,13 @@ def main(argv=None):
     ap.add_argument("stage", choices=["status", "calibration", "instances", "pilot", "m1", "m4"])
     ap.add_argument("--max-calls", type=int, default=0, help="model calls in this batch")
     ap.add_argument("--backend", choices=["cli", "fake"], default="cli")
-    ap.add_argument("--out", default="results_A")
-    ap.add_argument("--instances-dir", default="instances")
+    ap.add_argument("--config", default="config/experiment_A.frozen.yaml")
+    ap.add_argument("--out", default=None, help="default: the config's results_dir, else results_A")
+    ap.add_argument("--instances-dir", default=None, help="default: the hash file's directory")
     args = ap.parse_args(argv)
+    set_config(ROOT / args.config if not Path(args.config).is_absolute() else args.config)
+    args.out = args.out or CFG["instances"].get("results_dir", "results_A")
+    args.instances_dir = args.instances_dir or str(Path(CFG["instances"]["hash_file"]).parent)
     if args.backend == "cli":
         from harness.cli_backend import CliBackend
         backend = CliBackend(CFG["model"]["confirmatory"])
