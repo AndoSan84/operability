@@ -176,6 +176,67 @@ class Run:
         return row
 
 
+    def call_m2(self, file, budget, *, inst, arm):
+        """One M2 call: the vendored maze prompt, classified by harness.maze_domain."""
+        from harness import maze_domain
+        if self.calls_this_batch >= budget:
+            raise Stop(f"batch budget of {budget} calls reached")
+        rows = load_jsonl(file)
+        api_try = sum(1 for r in rows if r["module"] == "M2" and r["instance_id"] == inst["id"]
+                      and r["arm"] == arm)
+        prompt = maze_domain.prompt(inst, arm)
+        psha = hashlib.sha256(prompt.encode()).hexdigest()
+        (self.out / "prompts" / f"{psha}.txt").write_text(prompt)
+        try:
+            res = self.backend.call(prompt, CFG["m2"]["timeout_s"])
+        except Exception as e:
+            if type(e).__name__ == "UsageLimit":
+                self.log(f"usage limit reached; batch ends, resume later: {str(e)[:200]}")
+                raise Stop("usage limit reached")
+            raise
+        self.calls_this_batch += 1
+        if res.get("outcome_hint") in ("api_error", "timeout", "max_tokens"):
+            cls = {"outcome": res["outcome_hint"], "reason": None, "artifact": None}
+        else:
+            cls = maze_domain.classify(inst, arm, res.get("text"))
+        matches = contamination.scan(res.get("text"))
+        row = {
+            "run_id": f"A-{self.batch_id}", "config_hash": CONFIG_HASH,
+            "timestamp": dt.datetime.now().isoformat(), "batch_id": self.batch_id,
+            "backend": self.backend.name, "backend_version": self.backend.version,
+            "model_requested": self.backend.model, "model_id": res.get("model_id"),
+            "module": "M2", "domain": "maze", "instance_id": inst["id"],
+            "instance_seed": inst["seed"], "arm": arm, "loop_attempt": 1, "api_try": api_try,
+            "prompt_sha256": psha, "raw_response": res.get("text"),
+            "stop_reason": res.get("stop_reason"), "num_turns": res.get("num_turns"),
+            "input_tokens": res.get("input_tokens"), "output_tokens": res.get("output_tokens"),
+            "latency_ms": res.get("latency_ms"), "cost_usd": res.get("cost_usd"),
+            "session_id": res.get("session_id"), "artifact": cls.get("artifact"),
+            "outcome": cls["outcome"], "reason": cls.get("reason"),
+            "path_length": cls.get("path_length"), "optimal_length": inst.get("solution_length"),
+            "contaminated": bool(matches), "contamination_matches": matches,
+            "structural_violations": res.get("structural_violations") or [],
+            "notes": res.get("stderr") or None,
+        }
+        if row["structural_violations"]:
+            row["outcome"] = "api_error"
+        append_jsonl(file, row)
+        if row["structural_violations"]:
+            (self.out / "STRUCTURAL_ABORT.md").write_text(
+                "# Structural check failed\n\nM2 " + inst["id"] + " " + arm + ":\n\n"
+                + "\n".join(f"- {v}" for v in row["structural_violations"]) + "\n")
+            raise Stop("structural check failed: STRUCTURAL_ABORT.md written")
+        if row["outcome"] in INFRA:
+            self.consecutive_api_errors += 1
+            if self.consecutive_api_errors >= MAX_CONSECUTIVE_API_ERRORS:
+                raise Stop(f"{MAX_CONSECUTIVE_API_ERRORS} consecutive api_error: batch ends")
+        else:
+            self.consecutive_api_errors = 0
+        self.log(f"M2 {inst['id']} {arm} try{api_try}: {row['outcome']}"
+                 f"{' CONTAMINATED' if matches else ''}")
+        return row
+
+
 # ---------------------------------------------------------------- state of a feedback module
 
 def latest(rows, module, instance_id, arm, att):
@@ -404,6 +465,41 @@ def stage_m4(run, budget):
         cap=CFG["instances"]["m4_max_calls"])
 
 
+def stage_m2(run, budget):
+    """Exploratory M2: one attempt per instance in each of three paired arms, on the maze."""
+    from harness import maze_domain
+    m2 = CFG.get("m2")
+    if not m2:
+        raise Stop("this config has no m2 block")
+    ipath = run.idir / "maze_M2.json"
+    if not ipath.exists():
+        run.idir.mkdir(parents=True, exist_ok=True)
+        insts = []
+        for i in range(m2["n_instances"]):
+            inst = maze_domain.generate(m2["seed_base"] + 1000 * i)
+            inst["id"] = f"m2_{i:03d}"
+            insts.append(inst)
+        ipath.write_text(json.dumps(insts))
+        (run.idir / "INSTANCES_M2.sha256").write_text(
+            f"{hashlib.sha256(ipath.read_bytes()).hexdigest()}  {ipath.name}\n")
+    recorded = (run.idir / "INSTANCES_M2.sha256").read_text().split()[0]
+    if hashlib.sha256(ipath.read_bytes()).hexdigest() != recorded:
+        raise Stop("maze_M2.json does not match INSTANCES_M2.sha256")
+    insts = json.loads(ipath.read_text())
+    file = run.out / "results.jsonl"
+    for inst in insts:
+        order = list(maze_domain.CELLS)
+        random.Random(f"{m2['seed_base']}:{inst['id']}").shuffle(order)
+        for arm in order:
+            rows = [r for r in load_jsonl(file) if r["module"] == "M2"]
+            if len(rows) >= m2["cap_calls"]:
+                raise Stop(f"M2: call cap {m2['cap_calls']} reached")
+            if done(latest(rows, "M2", inst["id"], arm, 1)):
+                continue
+            run.call_m2(file, budget, inst=inst, arm=arm)
+    return f"M2: all {len(insts)} instances done in all three arms"
+
+
 def stage_status(run):
     lines = [f"backend {run.backend.name} {run.derived.get('backend_version')}"]
     for name in ("calibration.jsonl", "pilot.jsonl", "results.jsonl"):
@@ -424,7 +520,7 @@ def stage_status(run):
 
 def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("stage", choices=["status", "calibration", "instances", "pilot", "m1", "m4"])
+    ap.add_argument("stage", choices=["status", "calibration", "instances", "pilot", "m1", "m4", "m2"])
     ap.add_argument("--max-calls", type=int, default=0, help="model calls in this batch")
     ap.add_argument("--backend", choices=["cli", "fake"], default="cli")
     ap.add_argument("--config", default="config/experiment_A.frozen.yaml")
@@ -449,7 +545,8 @@ def main(argv=None):
               "calibration": lambda: stage_calibration(run, args.max_calls),
               "pilot": lambda: stage_pilot(run, args.max_calls),
               "m1": lambda: stage_m1(run, args.max_calls),
-              "m4": lambda: stage_m4(run, args.max_calls)}[args.stage]
+              "m4": lambda: stage_m4(run, args.max_calls),
+              "m2": lambda: stage_m2(run, args.max_calls)}[args.stage]
         msg = fn()
         print(msg)
         if args.stage not in ("status",):
