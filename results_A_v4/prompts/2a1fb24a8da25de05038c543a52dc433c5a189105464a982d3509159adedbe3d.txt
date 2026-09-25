@@ -1,0 +1,47 @@
+## Task
+
+You are given a 12x12 maze with 4 keys ('a', 'b', 'c', 'd') and 4 corresponding
+locked doors. You start at (0,0). You must reach (11,11).
+
+Win condition (both required):
+  1. Collect ALL 4 keys before stepping onto the goal cell.
+  2. Respect locks: a door can only be entered if you already carry the matching key.
+
+Maze representation:
+  - 0 = open cell, 1 = wall
+  - lowercase letter ('a', 'b', ...) = key
+  - uppercase letter ('A', 'B', ...) = door; door 'X' requires key 'x' to pass
+  - Start at (0,0), goal at (11,11)
+  - You may move up/down/left/right one step at a time
+
+## Maze
+
+maze = [
+    [0, 0, 0, 0, 0, 1, 0, 'c', 0, 0, 0, 0],
+    [1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0],
+    [1, 0, 0, 1, 1, 1, 0, 0, 'b', 0, 0, 0],
+    [1, 1, 0, 1, 0, 0, 1, 0, 'd', 0, 1, 1],
+    [0, 0, 0, 0, 0, 0, 1, 'A', 1, 1, 0, 0],
+    [1, 'D', 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 0, 0, 0, 'a', 0, 0, 'C', 0, 0, 0, 0],
+    [0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0],
+    [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
+    [1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0],
+    [1, 0, 0, 'B', 0, 1, 1, 0, 0, 0, 0, 0],
+]
+
+## Your task
+
+Write a Python function that solves this maze using BFS. The function should
+return the path as a list of (row, col) tuples.
+
+Then, WITHOUT executing the code, mentally trace through your BFS to determine
+what path it would produce on this specific maze. Show your reasoning.
+
+End your response with exactly this format on its own line:
+PATH: [(0,0), (r1,c1), (r2,c2), ..., (11,11)]
+
+IMPORTANT: Your response MUST include a ```python ... ``` code block with your
+BFS implementation. Do NOT run the code - simulate it mentally and report PATH
+based on your mental trace.
