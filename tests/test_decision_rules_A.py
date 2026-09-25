@@ -59,3 +59,22 @@ def test_v2_differs_from_v1_only_where_declared():
             assert {k: v for k, v in v2[key].items() if k != "log"} == {k: v for k, v in v1[key].items() if k != "log"}
         else:
             assert v2[key] == v1[key], key
+
+
+def test_v3_is_v2_with_thinking_disabled():
+    v2 = yaml.safe_load(open("config/experiment_A_v2.frozen.yaml"))
+    v3 = yaml.safe_load(open("config/experiment_A_v3.frozen.yaml"))
+    assert v3["config_version"] == 3 and v3["model"]["thinking"] == "disabled"
+    assert v3["model"]["confirmatory"] == v2["model"]["confirmatory"]
+    assert v3["analysis"] == v2["analysis"]
+    for key in ("branching", "feedback_blocks", "contamination", "gates", "batches"):
+        assert v3[key] == v2[key], key
+
+
+def test_thinking_disabled_reaches_the_cli():
+    import json
+    from harness import cli_backend
+    cmd = cli_backend.command("m", "low", "disabled")
+    assert json.loads(cmd[cmd.index("--settings") + 1]) == {"alwaysThinkingEnabled": False}
+    assert cli_backend.env("disabled")["MAX_THINKING_TOKENS"] == "0"
+    assert "--settings" not in cli_backend.command("m", "low", "default")

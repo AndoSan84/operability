@@ -29,11 +29,25 @@ def cli_version():
     return out.stdout.strip().split()[0]
 
 
-def command(model):
-    return ["claude", "-p", "--input-format", "text", "--output-format", "stream-json",
-            "--verbose", "--model", model, "--effort", "low", "--tools", "",
-            "--permission-mode", "dontAsk", "--strict-mcp-config", "--setting-sources", "",
-            "--disable-slash-commands", "--system-prompt", SYSTEM_PROMPT]
+def command(model, effort="low", thinking="default"):
+    """thinking="disabled" passes alwaysThinkingEnabled=false explicitly, since --setting-sources ""
+    loads no settings file; the runner also sets MAX_THINKING_TOKENS=0 (see env())."""
+    cmd = ["claude", "-p", "--input-format", "text", "--output-format", "stream-json",
+           "--verbose", "--model", model]
+    if effort:
+        cmd += ["--effort", effort]
+    cmd += ["--tools", "", "--permission-mode", "dontAsk", "--strict-mcp-config",
+            "--setting-sources", "", "--disable-slash-commands", "--system-prompt", SYSTEM_PROMPT]
+    if thinking == "disabled":
+        cmd += ["--settings", json.dumps({"alwaysThinkingEnabled": False})]
+    return cmd
+
+
+def env(thinking="default"):
+    e = dict(os.environ, DISABLE_AUTOUPDATER="1")
+    if thinking == "disabled":
+        e["MAX_THINKING_TOKENS"] = "0"
+    return e
 
 
 def _transcript_models(session_id, wait_s=5.0):
@@ -59,17 +73,17 @@ def _transcript_models(session_id, wait_s=5.0):
 class CliBackend:
     name = "claude_cli"
 
-    def __init__(self, model):
-        self.model = model
+    def __init__(self, model, effort="low", thinking="default"):
+        self.model, self.effort, self.thinking = model, effort, thinking
         self.version = cli_version()
 
     def call(self, prompt, timeout_s):
         workdir = tempfile.mkdtemp(prefix="expA-call-")
-        env = dict(os.environ, DISABLE_AUTOUPDATER="1")
         t0 = time.time()
         try:
-            proc = subprocess.run(command(self.model), input=prompt, capture_output=True,
-                                  text=True, timeout=timeout_s, cwd=workdir, env=env)
+            proc = subprocess.run(command(self.model, self.effort, self.thinking), input=prompt,
+                                  capture_output=True, text=True, timeout=timeout_s, cwd=workdir,
+                                  env=env(self.thinking))
         except subprocess.TimeoutExpired:
             return {"outcome_hint": "timeout", "text": "", "latency_ms": int(timeout_s * 1000),
                     "structural_violations": [], "stderr": ""}
@@ -116,6 +130,9 @@ class CliBackend:
             for block in m.get("content") or []:
                 if isinstance(block, dict) and block.get("type") == "tool_use":
                     violations.append("tool_use block")
+                if (self.thinking == "disabled" and isinstance(block, dict)
+                        and block.get("type") in ("thinking", "redacted_thinking")):
+                    violations.append("thinking block with thinking disabled")
         tmodels = _transcript_models(init.get("session_id")) if init else None
         if tmodels is None:
             violations.append("session transcript not found")

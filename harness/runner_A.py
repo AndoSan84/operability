@@ -436,7 +436,8 @@ def main(argv=None):
     args.instances_dir = args.instances_dir or str(Path(CFG["instances"]["hash_file"]).parent)
     if args.backend == "cli":
         from harness.cli_backend import CliBackend
-        backend = CliBackend(CFG["model"]["confirmatory"])
+        backend = CliBackend(CFG["model"]["confirmatory"],
+                             thinking="disabled" if CFG["model"]["thinking"] == "disabled" else "default")
     else:
         from harness.fake_backend import FakeBackend
         backend = FakeBackend()
