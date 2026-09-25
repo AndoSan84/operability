@@ -22,3 +22,11 @@ are the subscription's message "You've hit your monthly spend limit … your ses
 in the append-only file; the analysis excludes `api_error`, and the attempt is re-issued as
 api_try 3. The detector now matches spend, session, weekly and monthly limits
 (`harness/cli_backend.py`, tested).
+
+## 3. Regression denominator corrected in v5
+
+The v1 script counted a regression only among instances whose attempt 3 failed, which conditioned
+the rate on failure. The v5 script (AMENDMENTS-A-v5 H1) includes attempt-3 successes in the
+denominator. Re-run on these data: diagnostic regression 3/9 (was 3/4); binary 6/11, unchanged.
+All other v3 numbers are identical under both scripts. The pre-registered v3 output stays as
+produced; the corrected figure is the one to cite.

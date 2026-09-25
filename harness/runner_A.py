@@ -111,7 +111,7 @@ class Run:
 
     # ------------------------------------------------------------ one model call = one row
     def call(self, file, budget, *, module, inst, instance_id, arm, loop_attempt, prompt,
-             timeout_s, blocks=None):
+             timeout_s, blocks=None, classifier=None):
         if self.calls_this_batch >= budget:
             raise Stop(f"batch budget of {budget} calls reached")
         rows = load_jsonl(file)
@@ -127,9 +127,12 @@ class Run:
                 raise Stop("usage limit reached")
             raise
         self.calls_this_batch += 1
-        code = parsers.extract_code(res.get("text"), "clingo")
+        code = None if classifier else parsers.extract_code(res.get("text"), "clingo")
         if res.get("outcome_hint") in ("api_error", "timeout", "max_tokens"):
             cls = {"outcome": res["outcome_hint"], "violations": [], "solver_output": ""}
+        elif classifier:
+            cls = classifier(res.get("text"))
+            code = cls.get("artifact")
         else:
             cls = asp_domain.classify(inst, code, CLINGO_TIMEOUT)
         matches = contamination.scan(res.get("text"))
@@ -138,7 +141,8 @@ class Run:
             "timestamp": dt.datetime.now().isoformat(), "batch_id": self.batch_id,
             "backend": self.backend.name, "backend_version": self.backend.version,
             "model_requested": self.backend.model, "model_id": res.get("model_id"),
-            "effort": "low", "temperature": "backend_default", "max_output_tokens": "backend_default",
+            "effort": "low", "thinking": CFG["model"].get("thinking"),
+            "temperature": "backend_default", "max_output_tokens": "backend_default",
             "module": module, "domain": "asp", "instance_id": instance_id,
             "instance_seed": inst["seed"], "instance_params": inst["params"],
             "arm": arm, "loop_attempt": loop_attempt, "api_try": api_try,
@@ -500,6 +504,125 @@ def stage_m2(run, budget):
     return f"M2: all {len(insts)} instances done in all three arms"
 
 
+# ---------------------------------------------------------------- M3 (v5): two media, one loop
+
+M3_ARMS = ("m3_nl", "m3_asp")
+
+
+def m3_next_call(rows, module, iid, order):
+    """(arm, attempt, previous row) of the next call for this instance, attempts interleaved
+    across the two arms; None when both arms are finished."""
+    for att in (1, 2, 3):
+        for arm in order:
+            if done(latest(rows, module, iid, arm, att)):
+                continue
+            if att == 1:
+                return (arm, 1, None)
+            prev = latest(rows, module, iid, arm, att - 1)
+            if not done(prev) or prev["outcome"] == "valid":
+                continue
+            return (arm, att, prev)
+    return None
+
+
+def run_m3_module(run, file, module, insts, budget, *, timeout_s, cap):
+    from harness import prompts_M3
+    seed = CFG["m3"]["seed"]
+    while True:
+        rows = [r for r in load_jsonl(file) if r["module"] == module]
+        if len(rows) >= cap:
+            raise Stop(f"{module}: call cap {cap} reached")
+        order_of = {}
+        pick = None
+        for inst in insts:
+            order = list(M3_ARMS)
+            random.Random(f"{seed}:{inst['id']}").shuffle(order)
+            order_of[inst["id"]] = order
+            started = any(r["instance_id"] == inst["id"] for r in rows)
+            nxt = m3_next_call(rows, module, inst["id"], order)
+            if started and nxt:
+                pick = (inst, nxt)
+                break
+        if pick is None:
+            for inst in insts:
+                if not any(r["instance_id"] == inst["id"] for r in rows):
+                    pick = (inst, m3_next_call(rows, module, inst["id"], order_of[inst["id"]]))
+                    break
+        if pick is None:
+            return f"{module}: all {len(insts)} instances finished in both arms"
+        inst, (arm, att, prev) = pick
+        problem = asp_domain.problem_block(inst)
+        if not all(prompts_M3.attempt1(inst, a).startswith(problem) for a in M3_ARMS):
+            (run.out / "STRUCTURAL_ABORT.md").write_text(
+                f"# Problem-block identity failed\n\n{module} {inst['id']}\n")
+            raise Stop("problem-block identity failed")
+        prompt = prompts_M3.attempt1(inst, arm) if att == 1 else prompts_M3.retry(inst, arm, prev)
+        run.call(file, budget, module=module, inst=inst, instance_id=inst["id"], arm=arm,
+                 loop_attempt=att, prompt=prompt, timeout_s=timeout_s,
+                 classifier=(lambda text, inst=inst: prompts_M3.classify_nl(inst, text))
+                 if arm == "m3_nl" else None)
+
+
+def _m3_instances(run, name, params, seed, n, prefix):
+    path = run.idir / name
+    if not path.exists():
+        run.idir.mkdir(parents=True, exist_ok=True)
+        insts = []
+        for i in range(n):
+            inst = asp_domain.generate(*params, seed=seed + 1000 * i)
+            inst["id"] = f"{prefix}{i:03d}"
+            insts.append(inst)
+        path.write_text(json.dumps(insts))
+        with open(run.idir / "INSTANCES_M3.sha256", "a") as fh:
+            fh.write(f"{hashlib.sha256(path.read_bytes()).hexdigest()}  {name}\n")
+    recorded = dict(l.split()[::-1] for l in (run.idir / "INSTANCES_M3.sha256").read_text().splitlines())
+    if hashlib.sha256(path.read_bytes()).hexdigest() != recorded.get(name):
+        raise Stop(f"{name} does not match INSTANCES_M3.sha256")
+    return [asp_domain.from_json(d) | {"id": d["id"]} for d in json.loads(path.read_text())]
+
+
+def stage_m3(run, budget):
+    m3 = CFG.get("m3")
+    if not m3:
+        raise Stop("this config has no m3 block")
+    state = run.derived.setdefault("m3", {"point": m3["point"], "moved": False, "pilots": []})
+    pfile = run.out / "pilot_m3.jsonl"
+    # ---- pilot(s): discarded; floor rule may move the point once
+    while not state.get("pilot_passed"):
+        pt = state["point"]
+        tag = "x".join(map(str, pt))
+        pinsts = _m3_instances(run, f"m3_pilot_{tag}.json", pt, m3["pilot_seed"], m3["n_pilot"], f"p{tag}_")
+        run_m3_module(run, pfile, f"M3pilot_{tag}", pinsts, budget, timeout_s=PILOT_TIMEOUT,
+                      cap=m3["cap_pilot"])
+        rows = [r for r in load_jsonl(pfile) if r["module"] == f"M3pilot_{tag}" and r["outcome"] not in INFRA]
+        a1 = {a: sum(1 for r in rows if r["arm"] == a and r["loop_attempt"] == 1 and r["outcome"] == "valid")
+              for a in M3_ARMS}
+        contam = {a: (sum(r["contaminated"] for r in rows if r["arm"] == a)
+                      / max(1, sum(1 for r in rows if r["arm"] == a))) for a in M3_ARMS}
+        lat = sorted(r["latency_ms"] for r in rows if r.get("latency_ms"))
+        p99 = lat[min(len(lat) - 1, math.ceil(0.99 * len(lat)) - 1)] if lat else 0
+        state["pilots"].append({"point": pt, "attempt1_valid": a1, "n": m3["n_pilot"],
+                                "contamination": contam, "latency_p99_ms": p99})
+        run.save_derived()
+        if any(v > m3["pilot_contamination_max"] for v in contam.values()):
+            (run.out / "PILOT_BLOCKED_M3.md").write_text(f"# M3 pilot blocked\n\n{state['pilots'][-1]}\n")
+            raise Stop("M3 pilot: contamination gate failed")
+        if min(a1.values()) == 0 and not state["moved"]:
+            state["point"], state["moved"] = m3["floor_fallback_point"], True
+            run.save_derived()
+            run.log(f"M3 floor rule: an arm solved 0/{m3['n_pilot']} at attempt 1 at {pt}; "
+                    f"moving once to {state['point']}")
+            continue
+        state["pilot_passed"], state["timeout_s"] = True, max(180, math.ceil(2 * p99 / 1000))
+        run.save_derived()
+    # ---- main run
+    pt = state["point"]
+    insts = _m3_instances(run, "m3_main.json", pt, m3["seed"], m3["n_instances"], "m3_")
+    msg = run_m3_module(run, run.out / "results.jsonl", "M3", insts, budget,
+                        timeout_s=state["timeout_s"], cap=m3["cap_main"])
+    return f"{msg} (point {pt})"
+
+
 def stage_status(run):
     lines = [f"backend {run.backend.name} {run.derived.get('backend_version')}"]
     for name in ("calibration.jsonl", "pilot.jsonl", "results.jsonl"):
@@ -520,7 +643,7 @@ def stage_status(run):
 
 def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("stage", choices=["status", "calibration", "instances", "pilot", "m1", "m4", "m2"])
+    ap.add_argument("stage", choices=["status", "calibration", "instances", "pilot", "m1", "m4", "m2", "m3"])
     ap.add_argument("--max-calls", type=int, default=0, help="model calls in this batch")
     ap.add_argument("--backend", choices=["cli", "fake"], default="cli")
     ap.add_argument("--config", default="config/experiment_A.frozen.yaml")
@@ -546,7 +669,8 @@ def main(argv=None):
               "pilot": lambda: stage_pilot(run, args.max_calls),
               "m1": lambda: stage_m1(run, args.max_calls),
               "m4": lambda: stage_m4(run, args.max_calls),
-              "m2": lambda: stage_m2(run, args.max_calls)}[args.stage]
+              "m2": lambda: stage_m2(run, args.max_calls),
+              "m3": lambda: stage_m3(run, args.max_calls)}[args.stage]
         msg = fn()
         print(msg)
         if args.stage not in ("status",):

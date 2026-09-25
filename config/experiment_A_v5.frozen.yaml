@@ -1,0 +1,194 @@
+# Experiment A — frozen configuration, version 5.
+#
+# v5 = v4 plus M3 (experiment-A-v5-M3.md): the same loop in two media, 200 paired instances.
+# Analysis: analysis/analyze_experiment_A_v5.py. See AMENDMENTS-A-v5.md.
+#
+# (v4 header follows.)
+#
+# v4 = v3 plus the exploratory module M2 (maze: nl / code-mental / code-executed), on the same
+# model and settings. See AMENDMENTS-A-v4.md.
+#
+# (v3 header follows.)
+#
+# v3 = v2 with extended thinking disabled (MAX_THINKING_TOKENS=0 and alwaysThinkingEnabled=false),
+# and its own instance and results directories. See AMENDMENTS-A-v3.md.
+#
+# (v2 header follows.)
+#
+# v2 differs from v1 only in the model (Haiku instead of Sonnet), the instance hash file, the
+# results directory and the modules in scope. Reason: v1 stopped for lack of material, with
+# 43/46 attempt-1 successes on Sonnet (results_A/REPORT.md). See AMENDMENTS-A-v2.md.
+#
+# Same rules as Experiment B's config: committed before the first run, never edited in place; a
+# change means a new config_version and a new results file. Decisions: experiment-A-feedback-
+# ablation.md; final decisions in AMENDMENTS-A-v1.md, D9. Harness decisions inherited from AMENDMENTS-v3.md, C8.
+
+config_version: 5
+status: frozen
+experiment: A_feedback_ablation
+spec: experiment-A-feedback-ablation.md
+
+model:
+  confirmatory: claude-haiku-4-5-20251001   # full dated id; verified on every call (C8)
+  backend: claude_cli
+  backend_version: null            # `claude --version` at run start; abort if it changes
+  environment: {DISABLE_AUTOUPDATER: "1"}
+  thinking: disabled               # MAX_THINKING_TOKENS=0 + alwaysThinkingEnabled=false; --effort low kept
+  temperature: backend_default
+  max_output_tokens: backend_default
+  cli:
+    flags: >-
+      -p --input-format text --output-format stream-json --verbose --model {pinned_snapshot} --effort low --tools "" --permission-mode dontAsk --strict-mcp-config --setting-sources "" --disable-slash-commands --system-prompt "You are a helpful assistant."
+    structural_checks: see config/experiment_B.frozen.yaml model.cli.structural_checks (C8), unchanged
+  context: single_user_message     # D5: no transcript; the inline rendering of C8 does not arise
+
+domain: asp_jobshop                # maze only in exploratory M2
+
+instances:
+  seed: 20260926
+  calibration_seed: 20260927       # distinct stream; calibration instances are discarded
+  n_pilot: 6                       # first 6 of the frozen list; not counted in M1
+  m1_target_branched: 30           # primary-eligible branched instances
+  m1_max_attempt1_instances: 90
+  supply_stop_rule: |
+    After 20 attempt-1 instances, and after every batch thereafter: if the 95% Wilson upper bound
+    of the observed eligible-failure rate times the attempt-1 cap (90) is below the target (30),
+    stop and report: the regime is the symbolic bottleneck and the contrast has no material.
+  m4_target_branched: 6            # at the hardest calibration grid point
+  m4_max_calls: 45                 # fewer than 6 branched within the cap: M4 reported as not run
+  path: instances/
+  hash_file: instances_A_v5/INSTANCES_A.sha256
+  results_dir: results_A_v5
+
+calibration:
+  measured_on: attempt1_eligible_failure_sonnet
+  target: 0.5                      # eligible-failure rate at attempt 1
+  coarse: true                     # 4 instances per point: SE ~0.25; the design is protected by
+                                   # sequential supply and the stop rule, not by the band
+  grid: [[10, 3, 10], [12, 3, 12], [14, 4, 14], [16, 4, 16], [18, 5, 18]]  # [n_jobs, n_machines, n_precedences]
+  per_point: 4
+  rule: |
+    Ascending, attempt 1 only, 4 instances per point from calibration_seed. Select the point whose
+    eligible-failure rate (invalid_schedule or unsat) is closest to 0.5; ties to the harder point.
+    One pass, no manual adjustment. M4 uses the hardest grid point.
+  log: results_A_v5/calibration.jsonl
+
+branching:
+  attempt_outcomes: [valid, invalid_schedule, unsat, syntax_error, solver_timeout, unparsable,
+                     refused, api_error, timeout, max_tokens]
+  eligible: [invalid_schedule, unsat]          # the primary population
+  sensitivity: [invalid_schedule]              # pre-specified sensitivity analysis
+  infrastructure: [api_error]                  # not an attempt; the arm is incomplete until re-run
+  max_attempts: 3
+  censored_value: 4
+  arm_order: drawn per instance from instances.seed
+  solver_output_truncate_chars: 1500
+  clingo_timeout_seconds: 30
+
+prompt_blocks: [problem, feedback, previous_artifact, instruction]   # only `feedback` may differ
+feedback_blocks:
+  invalid_schedule:
+    binary: "It did not produce a valid schedule."
+    diagnostic: "The schedule it produced violates:\n{{VIOLATIONS}}\nClingo output: {{SOLVER_OUTPUT_TRUNCATED}}"
+  unsat:
+    binary: "It did not produce a valid schedule."
+    diagnostic: "Clingo found no answer set, although the instance admits a valid schedule: some constraint in your encoding is stronger than the specification.\nClingo output: {{SOLVER_OUTPUT_TRUNCATED}}"
+  syntax_error: {both: "{{SOLVER_ERROR}}"}
+  solver_timeout: {both: "{{SOLVER_TIMEOUT_MESSAGE}}"}
+  unparsable: {both: "Your reply contained no clingo code block."}
+context_at_attempt_3: previous artifact and feedback of attempt 2 only
+
+budget:
+  caps_calls:                      # Sonnet only
+    calibration: 24
+    pilot: 24
+    m1: 210                        # 90 attempt-1 + 4 x 30 branched
+    m2: 60                         # 20 instances x 3 single-shot conditions
+    m3: 75                         # 25 instances x up to 3 NL attempts
+    m4: 45
+  on_exceed: stop_and_report
+  m2_m3_decision: recorded before M1 is analysed; depends on calls available, never on results
+  v5_scope: [M3]                   # decided after M1 (v3) and M2 (v4) were analysed; declared
+
+batches:
+  batch_size: set by the operator per session; integrity does not depend on it
+  analysis_only_at_end: true
+  interim_analysis: none
+  between_batches: [structural_checks, contamination, parse_failures, cli_version, model_id,
+                    branch_identity, attempt1_eligible_failure_rate]
+  resumable: true                  # see spec §8a: append-only, flushed per call, idempotent resume
+  interrupted_instance: resumes first in the next batch; batch_id per row records the split
+  batch_id_in_every_row: true
+  drift_table: attempt1_success_per_batch
+
+contamination:
+  patterns_case_insensitive:        # identical to Experiment B (C8)
+    - '<\s*(function_calls|invoke|tool_use|tool_result)\b'
+    - '\b(bash|read|write|edit|glob|grep|webfetch|websearch|todowrite|notebookedit|task)\s+tool\b'
+    - '\b(use|call|invoke|using)\s+(a|the|my)?\s*tools?\b'
+    - '\b(i\s+(do\s+not|don''t|cannot|can''t)|unable\s+to)\s+(have\s+access\s+to|access|run|execute|open|read)\b'
+    - '\b(let\s+me|i''ll|i\s+will)\s+(run|execute)\b'
+    - '\b(file\s*system|working\s+directory|current\s+directory|claude\.md)\b'
+  pilot_gate_max_per_arm: 0.02
+  full_run: reported per arm, not gated
+
+gates:
+  pilot:
+    max_parse_failure_rate: 0.05
+    max_contamination_rate_per_arm: 0.02
+  every_branched_instance:
+    branch_identity: byte-identical after FEEDBACK_BLOCK is replaced by a placeholder
+
+analysis:
+  script: analysis/analyze_experiment_A_v5.py
+  sha256: 8293396b53fe04904eb01c311eb01e78f8cd0954387a97716bd0194bbe99ebeb  # recorded at the pre-registration commit
+  alpha: 0.05
+  primary: wilcoxon_signed_rank_one_sided   # zero_method wilcox, correction, normal approximation
+  population: eligible             # attempt 1 ran and failed semantically; both arms terminal
+  mei_medium: 0.15                 # M3: ASP advantage / reversal / bounded margin
+  mei_hl: 0.5                      # Hodges-Lehmann of (binary - diagnostic) attempts
+  n_branched_target: 30
+  m4_branched_target: 6
+  censored_value: 4
+  bootstrap: {reps: 10000, seed: 20260924}  # HL interval: reported, not part of the decision
+  secondary: [mcnemar_success_within_3, uptake_per_arm, regression_per_arm, contamination_per_arm]
+  exploratory: [M2, M3]
+  descriptive: [M4]
+
+m2:
+  status: exploratory
+  source: >-
+    vendor/operability/maze_keys_doors_replication/phase2_adversarial_maze (generator,
+    validator, prompts unchanged; `standard` medium)
+  difficulty: {size: 12, n_keys: 4, wall_density: 0.25}   # the vendored DIFFICULTY, unchanged
+  seed_base: 7000000               # instance i uses seed_base + 1000*i; fresh, not the published set
+  n_instances: 20
+  arms: [m2_nl, m2_mental, m2_exec]
+  attempts: 1                      # single attempt, no feedback
+  arm_order: drawn per instance from seed_base
+  timeout_s: 180
+  program_timeout_s: 30            # code-executed: the model's program, isolated, empty temp dir
+  cap_calls: 60
+  outcomes: [valid, invalid_path, unparsable, exec_error, api_error, timeout, max_tokens]
+  analysis: >-
+    analysis/analyze_experiment_A.py maze_replacement (frozen): success per arm, McNemar
+    nl vs mental and mental vs executed, unadjusted, exploratory
+
+m3:
+  status: confirmatory
+  spec: experiment-A-v5-M3.md
+  arms: [m3_nl, m3_asp]
+  point: [18, 5, 18]               # M1's calibrated difficulty
+  floor_fallback_point: [16, 4, 16]  # next easier point of M1's grid; used at most once
+  seed: 8000000                    # main instance i: seed + 1000*i; fresh, none of M1's
+  pilot_seed: 8500000              # pilot instance i: pilot_seed + 1000*i; discarded
+  n_instances: 200
+  n_pilot: 12
+  max_attempts: 3
+  loop_on: [invalid_schedule, unsat, syntax_error, solver_timeout, unparsable]
+  arm_order: drawn per instance from seed; attempts interleaved across arms
+  pilot_contamination_max: 0.02
+  pilot_timeout_s: 600
+  timeout_rule: max(180, ceil(2 x pilot p99 latency))
+  cap_pilot: 100                   # per pilot point
+  cap_main: 1300
