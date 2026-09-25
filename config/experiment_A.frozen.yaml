@@ -1,17 +1,16 @@
-# Experiment A — frozen configuration (DRAFT until the analysis script is frozen).
+# Experiment A — frozen configuration.
 #
 # Same rules as Experiment B's config: committed before the first run, never edited in place; a
 # change means a new config_version and a new results file. Decisions: experiment-A-feedback-
-# ablation.md as amended by AMENDMENTS-A-v1.md. Harness decisions inherited from AMENDMENTS-v3.md, C8.
+# ablation.md; final decisions in AMENDMENTS-A-v1.md, D9. Harness decisions inherited from AMENDMENTS-v3.md, C8.
 
 config_version: 1
-status: draft                  # becomes `frozen` at the pre-registration commit
+status: frozen
 experiment: A_feedback_ablation
 spec: experiment-A-feedback-ablation.md
 
 model:
   confirmatory: claude-sonnet-5    # full id, never an alias; verified on every call (C8)
-  replication: null                # M4: full Haiku id, resolved and recorded at M4 start
   backend: claude_cli
   backend_version: null            # `claude --version` at run start; abort if it changes
   environment: {DISABLE_AUTOUPDATER: "1"}
@@ -30,65 +29,74 @@ instances:
   seed: 20260926
   calibration_seed: 20260927       # distinct stream; calibration instances are discarded
   n_pilot: 6                       # first 6 of the frozen list; not counted in M1
-  m1_target_branched: 40
-  m1_min_branched: 30
-  m1_max_attempt1_instances: 110
+  m1_target_branched: 30           # primary-eligible branched instances
+  m1_max_attempt1_instances: 90
   supply_stop_rule: |
-    After each batch: if the 95% Wilson upper bound of the observed branching rate, applied to the
-    remaining attempt-1 budget up to the cap, leaves fewer than m1_min_branched branched instances,
-    stop and report that the contrast has no material.
+    After 20 attempt-1 instances, and after every batch thereafter: if the 95% Wilson upper bound
+    of the observed eligible-failure rate times the attempt-1 cap (90) is below the target (30),
+    stop and report: the regime is the symbolic bottleneck and the contrast has no material.
+  m4_target_branched: 6            # at the hardest calibration grid point
+  m4_max_calls: 45                 # fewer than 6 branched within the cap: M4 reported as not run
   path: instances/
   hash_file: instances/INSTANCES_A.sha256
 
 calibration:
-  measured_on: attempt1_success_sonnet
-  target_band: [0.40, 0.60]
-  band_is_a_target_not_a_gate: true
+  measured_on: attempt1_eligible_failure_sonnet
+  target: 0.5                      # eligible-failure rate at attempt 1
+  coarse: true                     # 4 instances per point: SE ~0.25; the design is protected by
+                                   # sequential supply and the stop rule, not by the band
   grid: [[10, 3, 10], [12, 3, 12], [14, 4, 14], [16, 4, 16], [18, 5, 18]]  # [n_jobs, n_machines, n_precedences]
   per_point: 4
   rule: |
-    Ascending, attempt 1 only, 4 instances per point from calibration_seed. Stop at the first
-    point whose attempt-1 success is at or below 0.60 and select, among the points run, the one
-    closest to 0.50; if none reaches the band, select the closest and record it. One pass, no
-    manual adjustment.
+    Ascending, attempt 1 only, 4 instances per point from calibration_seed. Select the point whose
+    eligible-failure rate (invalid_schedule or unsat) is closest to 0.5; ties to the harder point.
+    One pass, no manual adjustment. M4 uses the hardest grid point.
   log: results_A/calibration.jsonl
 
 branching:
-  attempt_outcomes: [valid, invalid_schedule, no_answer_set, syntax_error, solver_timeout, unparsable]
-  branch_on: [invalid_schedule, no_answer_set]
+  attempt_outcomes: [valid, invalid_schedule, unsat, syntax_error, solver_timeout, unparsable,
+                     refused, api_error, timeout, max_tokens]
+  eligible: [invalid_schedule, unsat]          # the primary population
+  sensitivity: [invalid_schedule]              # pre-specified sensitivity analysis
+  infrastructure: [api_error]                  # not an attempt; the arm is incomplete until re-run
   max_attempts: 3
+  censored_value: 4
   arm_order: drawn per instance from instances.seed
   solver_output_truncate_chars: 1500
   clingo_timeout_seconds: 30
 
+prompt_blocks: [problem, feedback, previous_artifact, instruction]   # only `feedback` may differ
 feedback_blocks:
   invalid_schedule:
     binary: "It did not produce a valid schedule."
     diagnostic: "The schedule it produced violates:\n{{VIOLATIONS}}\nClingo output: {{SOLVER_OUTPUT_TRUNCATED}}"
-  no_answer_set:
+  unsat:
     binary: "It did not produce a valid schedule."
-    diagnostic: "Clingo found no answer set (unsatisfiable, or no start/2 atoms).\nClingo output: {{SOLVER_OUTPUT_TRUNCATED}}"
+    diagnostic: "Clingo found no answer set, although the instance admits a valid schedule: some constraint in your encoding is stronger than the specification.\nClingo output: {{SOLVER_OUTPUT_TRUNCATED}}"
   syntax_error: {both: "{{SOLVER_ERROR}}"}
   solver_timeout: {both: "{{SOLVER_TIMEOUT_MESSAGE}}"}
   unparsable: {both: "Your reply contained no clingo code block."}
+context_at_attempt_3: previous artifact and feedback of attempt 2 only
 
 budget:
-  caps_calls:
+  caps_calls:                      # Sonnet only
     calibration: 24
     pilot: 24
-    m1: 280
-    m2: 90
-    m3: 60
-    m4_haiku: 200
+    m1: 210                        # 90 attempt-1 + 4 x 30 branched
+    m2: 60                         # 20 instances x 3 single-shot conditions
+    m3: 75                         # 25 instances x up to 3 NL attempts
+    m4: 45
   on_exceed: stop_and_report
   m2_m3_decision: recorded before M1 is analysed; depends on calls available, never on results
 
 batches:
+  batch_size: set by the operator per session; integrity does not depend on it
   analysis_only_at_end: true
   interim_analysis: none
   between_batches: [structural_checks, contamination, parse_failures, cli_version, model_id,
-                    branch_identity, attempt1_branching_rate]
-  instance_within_one_batch: true
+                    branch_identity, attempt1_eligible_failure_rate]
+  resumable: true                  # see spec §8a: append-only, flushed per call, idempotent resume
+  interrupted_instance: resumes first in the next batch; batch_id per row records the split
   batch_id_in_every_row: true
   drift_table: attempt1_success_per_batch
 
@@ -111,13 +119,16 @@ gates:
     branch_identity: byte-identical after FEEDBACK_BLOCK is replaced by a placeholder
 
 analysis:
-  script: analysis/analyze_experiment_A.py   # to be written; frozen by sha256 before the pilot
-  sha256: null
+  script: analysis/analyze_experiment_A.py
+  sha256: 69443d8b3e1f4a9e204431088ed2e1e9481e3bba1755fece38ddc8fc2ab47fba  # recorded at the pre-registration commit
   alpha: 0.05
-  primary: wilcoxon_signed_rank_one_sided
-  zero_method: wilcox
+  primary: wilcoxon_signed_rank_one_sided   # zero_method wilcox, correction, normal approximation
+  population: eligible             # attempt 1 ran and failed semantically; both arms terminal
+  mei_hl: 0.5                      # Hodges-Lehmann of (binary - diagnostic) attempts
+  n_branched_target: 30
+  m4_branched_target: 6
   censored_value: 4
-  mei_attempts: 0.25
-  bootstrap: {reps: 10000, seed: 20260925}
-  report_with_primary: [hodges_lehmann, bootstrap_ci95_mean_difference]
-  secondary: [mcnemar_success_within_3, uptake_wilson, regression_rate]
+  bootstrap: {reps: 10000, seed: 20260924}  # HL interval: reported, not part of the decision
+  secondary: [mcnemar_success_within_3, uptake_per_arm, regression_per_arm, contamination_per_arm]
+  exploratory: [M2, M3]
+  descriptive: [M4]

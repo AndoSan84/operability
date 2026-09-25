@@ -154,3 +154,71 @@ detected or missed, with the CI saying which; indistinguishable arms with a CI t
 large effect, which is the boundary result of §7; and a run stopped for lack of material, reported
 as such. The one confirmatory claim rests on Sonnet alone; the Haiku replication and the two
 exploratory modules are labelled as what they are.
+
+---
+
+## D9 — Final decisions before freezing (supersede D1, D2, D6 in part, D7)
+
+Taken after a second power simulation and with the analysis script in hand. Where they differ from
+D1–D8, these hold; D3, D4, D5 and D8 stand as refined here. The spec, the config and the script
+are frozen together in one commit.
+
+**Power, re-simulated** (800 replicates per cell, one-sided Wilcoxon with continuity correction):
+
+| repair per retry, diagnostic vs binary | branched n | test alone | test + HL ≥ 0.5 |
+|---|---|---|---|
+| 0.85 vs 0.55 | 20 / 30 / 40 | 0.71 / 0.89 / 0.95 | 0.66 / **0.78** / 0.86 |
+| 0.55 vs 0.25 | 20 / 30 / 40 | 0.74 / 0.88 / 0.96 | 0.74 / **0.88** / 0.96 |
+| 0.70 vs 0.50 | 20 / 30 / 40 | 0.41 / 0.55 / 0.67 | 0.40 / 0.52 / 0.62 |
+| 0.85 vs 0.70 | 20 / 30 / 40 | 0.31 / 0.40 / 0.54 | 0.21 / 0.17 / 0.19 |
+| 0.85 vs 0.85 (null) | 20 / 30 / 40 | 0.03 / 0.06 / 0.04 | 0.01 / 0.00 / 0.00 |
+
+1. **Target: 30 eligible branched instances**, attempt-1 cap 90. Early stop after 20 attempt-1
+   instances and after every batch if the 95% Wilson upper bound of the eligible-failure rate,
+   times 90, is below 30. The upper bound replaces the point estimate: at a true rate of 0.4 (36
+   expected at the cap) the point-estimate rule stops the run 25% of the time, the upper bound
+   0.4%.
+2. **Decision rule: one-sided Wilcoxon p < 0.05 and Hodges-Lehmann ≥ 0.5.** Not the median (0 when
+   half the pairs tie; power falls as n grows) and not the mean (0.48 for an 85%/55% repair
+   difference, so a 30-point effect never clears half an attempt). The HL bootstrap interval is
+   reported, not decisive. D2's mean ≥ 0.25 is withdrawn.
+3. **Primary population: attempt 1 runnable and semantically failed** (`invalid_schedule` or
+   `unsat`), both arms finished. Pre-specified sensitivity analysis on `invalid_schedule` only.
+4. **UNSAT diagnostic text:** "Clingo found no answer set, although the instance admits a valid
+   schedule: some constraint in your encoding is stronger than the specification."
+5. **Four prompt blocks** — problem, feedback, previous artifact, instruction. Only feedback may
+   differ; solver output belongs to it, so the binary arm never receives it. The gate checks the
+   other three byte for byte.
+6. **One user message per call.** At attempt 3, only attempt 2's artifact and feedback. The
+   cumulative context of Definition 1 is not tested, and the paper says so.
+7. **M4 on Sonnet**, at the hardest grid point, until 6 branched instances, cap 45 calls;
+   descriptive; fewer than 6 means not run. The Haiku replication of D7 is withdrawn: one model
+   throughout.
+8. **Calibration** chooses the grid point whose eligible-failure rate is closest to 0.5; coarse,
+   declared, and not what protects the design.
+9. **M2 explicit**: single attempt, three paired conditions, exploratory.
+
+**Corrections to the supplied analysis script.** The frozen script is not the one supplied (sha256
+of the supplied version begins `456dd1e4`); the difference is the following, found by running it
+on the case the batch design makes routine — a batch interrupted mid-instance when the
+subscription blocks:
+
+- **A pending arm was scored as censored.** An arm whose attempt 2 had failed and whose attempt 3
+  had not been issued yet counted as 4, giving a difference of +2 in the hypothesised direction
+  that measured where the batch stopped, not the model. An arm now enters the analysis only when
+  finished: repaired, or with a real attempt 3.
+- **An infrastructure failure was scored as a model failure.** An attempt whose last API try is
+  `api_error` is not an attempt; the arm stays incomplete until re-run, and is reported as
+  incomplete if it never is.
+- **Attempt-1 `api_error` rows sat in the single-shot denominator.** They are now excluded and
+  counted.
+- **M3** skips instances whose ASP loop is still pending, and reports how many ASP attempt-1
+  failures had no loop (syntax, timeout) and were counted as ASP failures — conservative against
+  the formal medium, stated rather than hidden.
+
+The scenarios are pinned in `tests/test_analysis_edge_cases_A.py`.
+
+**Batches and resumption** (spec §8a): append-only and flushed per call; idempotent resume from
+the results file, where an attempt is done iff its last try is not `api_error`; interrupted
+instances resume first; no arm-level outcome before the target; `DISABLE_AUTOUPDATER=1`. The
+batch size X is an operator's choice per session and integrity does not depend on it.
