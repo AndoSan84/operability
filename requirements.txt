@@ -1,0 +1,4 @@
+clingo==5.8.2
+pytest==9.1.1
+PyYAML==6.0.3
+scipy==1.18.1
