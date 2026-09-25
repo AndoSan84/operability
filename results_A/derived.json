@@ -1,0 +1,109 @@
+{
+  "backend_version": "2.1.282",
+  "calibration": {
+    "per_point": [
+      {
+        "grid_index": 0,
+        "params": [
+          10,
+          3,
+          10
+        ],
+        "eligible": 0,
+        "n": 4,
+        "rate": 0.0,
+        "outcomes": [
+          "valid",
+          "valid",
+          "valid",
+          "valid"
+        ]
+      },
+      {
+        "grid_index": 1,
+        "params": [
+          12,
+          3,
+          12
+        ],
+        "eligible": 1,
+        "n": 4,
+        "rate": 0.25,
+        "outcomes": [
+          "valid",
+          "valid",
+          "invalid_schedule",
+          "valid"
+        ]
+      },
+      {
+        "grid_index": 2,
+        "params": [
+          14,
+          4,
+          14
+        ],
+        "eligible": 0,
+        "n": 4,
+        "rate": 0.0,
+        "outcomes": [
+          "valid",
+          "valid",
+          "valid",
+          "valid"
+        ]
+      },
+      {
+        "grid_index": 3,
+        "params": [
+          16,
+          4,
+          16
+        ],
+        "eligible": 1,
+        "n": 4,
+        "rate": 0.25,
+        "outcomes": [
+          "valid",
+          "invalid_schedule",
+          "valid",
+          "valid"
+        ]
+      },
+      {
+        "grid_index": 4,
+        "params": [
+          18,
+          5,
+          18
+        ],
+        "eligible": 0,
+        "n": 4,
+        "rate": 0.0,
+        "outcomes": [
+          "valid",
+          "valid",
+          "valid",
+          "valid"
+        ]
+      }
+    ],
+    "chosen": {
+      "grid_index": 3,
+      "params": [
+        16,
+        4,
+        16
+      ],
+      "eligible": 1,
+      "n": 4,
+      "rate": 0.25,
+      "outcomes": [
+        "valid",
+        "invalid_schedule",
+        "valid",
+        "valid"
+      ]
+    }
+  }
+}

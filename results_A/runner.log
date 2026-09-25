@@ -1,0 +1,22 @@
+2026-09-25T02:31:28.717191 [20260925T023120] calibration g0k0 shared a1 try0: valid
+2026-09-25T02:31:34.863655 [20260925T023120] calibration g0k1 shared a1 try0: valid
+2026-09-25T02:31:40.375815 [20260925T023120] calibration g0k2 shared a1 try0: valid
+2026-09-25T02:31:47.977120 [20260925T023120] calibration g0k3 shared a1 try0: valid
+2026-09-25T02:31:53.720935 [20260925T023120] calibration g1k0 shared a1 try0: valid
+2026-09-25T02:31:59.746724 [20260925T023120] calibration g1k1 shared a1 try0: valid
+2026-09-25T02:32:05.261598 [20260925T023120] calibration g1k2 shared a1 try0: invalid_schedule
+2026-09-25T02:32:10.682094 [20260925T023120] calibration g1k3 shared a1 try0: valid
+2026-09-25T02:32:17.058367 [20260925T023120] calibration g2k0 shared a1 try0: valid
+2026-09-25T02:32:23.739673 [20260925T023120] calibration g2k1 shared a1 try0: valid
+2026-09-25T02:32:35.934876 [20260925T023228] calibration g2k2 shared a1 try0: valid
+2026-09-25T02:32:42.222983 [20260925T023228] calibration g2k3 shared a1 try0: valid
+2026-09-25T02:32:49.522101 [20260925T023228] calibration g3k0 shared a1 try0: valid
+2026-09-25T02:32:56.376838 [20260925T023228] calibration g3k1 shared a1 try0: invalid_schedule
+2026-09-25T02:33:04.381769 [20260925T023228] calibration g3k2 shared a1 try0: valid
+2026-09-25T02:33:10.389546 [20260925T023228] calibration g3k3 shared a1 try0: valid
+2026-09-25T02:33:16.682382 [20260925T023228] calibration g4k0 shared a1 try0: valid
+2026-09-25T02:33:22.772493 [20260925T023228] calibration g4k1 shared a1 try0: valid
+2026-09-25T02:33:29.043955 [20260925T023228] calibration g4k2 shared a1 try0: valid
+2026-09-25T02:33:35.377553 [20260925T023228] calibration g4k3 shared a1 try0: valid
+2026-09-25T02:33:35.379390 [20260925T023228] calibration complete: chosen grid point [16, 4, 16] (eligible-failure rate 0.25)
+2026-09-25T02:34:07.758338 [20260925T023355] instances written: 96 main at [16, 4, 16], 45 M4 at [18, 5, 18]
