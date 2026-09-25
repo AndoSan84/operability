@@ -16,8 +16,8 @@ import time
 from pathlib import Path
 
 SYSTEM_PROMPT = "You are a helpful assistant."
-USAGE_LIMIT = re.compile(r"(usage|rate)[ _-]?limit|limit (reached|exceeded)|out of (extra )?usage"
-                         r"|resets? (at|in)\b|quota", re.I)
+USAGE_LIMIT = re.compile(r"(usage|rate|spend|session|weekly|monthly)[ _-]?limit|limit (reached|exceeded)"
+                         r"|hit your .{0,40}limit|out of (extra )?usage|resets? (at|in)\b|quota", re.I)
 
 
 class UsageLimit(Exception):

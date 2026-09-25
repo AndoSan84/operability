@@ -225,3 +225,12 @@ def test_backend_version_change_aborts(tmp_path):
     other.version = "fake-2"
     with pytest.raises(runner_A.Stop, match="version changed"):
         _drive(tmp_path, other, insts, target=1)
+
+
+def test_usage_limit_messages_are_recognised():
+    from harness.cli_backend import USAGE_LIMIT
+    for msg in ("You've hit your monthly spend limit · raise it at claude.ai/settings/usage"
+                " · your session limit resets 6:20am (Europe/Zagreb)",
+                "You've hit your usage limit", "Claude usage limit reached. Your limit will reset at 5pm"):
+        assert USAGE_LIMIT.search(msg), msg
+    assert not USAGE_LIMIT.search("```clingo\nstart(1,0).\n```")
