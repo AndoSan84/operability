@@ -1,0 +1,43 @@
+You are solving a job-shop scheduling problem.
+
+Jobs (id, machine, duration):
+(1, A, 1)
+(2, B, 4)
+(3, C, 4)
+(4, A, 2)
+(5, A, 1)
+(6, A, 1)
+(7, C, 2)
+(8, D, 2)
+(9, B, 3)
+(10, C, 1)
+(11, A, 2)
+(12, D, 4)
+(13, A, 1)
+(14, B, 4)
+(15, A, 4)
+(16, D, 1)
+Precedence constraints (i before j), meaning job i must finish before job j starts:
+(8, 16)
+(7, 10)
+(12, 14)
+(11, 14)
+(7, 15)
+(11, 12)
+(3, 13)
+(10, 14)
+(1, 9)
+(8, 13)
+(2, 16)
+(1, 5)
+(2, 10)
+(4, 7)
+(1, 7)
+(10, 11)
+Deadline (all jobs must finish by): 16
+No two jobs on the same machine may overlap in time.
+
+Produce a schedule: an integer start time for every job.
+Reason in prose. Do not write code.
+End your reply with exactly one line, and write nothing after it:
+SCHEDULE: {1: t1, 2: t2, ...}

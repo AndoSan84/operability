@@ -1,0 +1,117 @@
+You are solving a job-shop scheduling problem.
+
+Jobs (id, machine, duration):
+(1, A, 3)
+(2, A, 2)
+(3, C, 4)
+(4, B, 1)
+(5, A, 1)
+(6, B, 2)
+(7, A, 4)
+(8, C, 2)
+(9, A, 3)
+(10, B, 3)
+(11, C, 4)
+(12, D, 1)
+(13, A, 2)
+(14, B, 2)
+(15, B, 4)
+(16, D, 3)
+Precedence constraints (i before j), meaning job i must finish before job j starts:
+(9, 11)
+(7, 14)
+(1, 15)
+(1, 10)
+(2, 16)
+(3, 13)
+(10, 13)
+(3, 5)
+(10, 14)
+(4, 15)
+(13, 16)
+(9, 12)
+(1, 14)
+(9, 10)
+(1, 5)
+(1, 13)
+Deadline (all jobs must finish by): 17
+No two jobs on the same machine may overlap in time.
+
+Write a Clingo (ASP) program that encodes this problem and whose answer set gives a valid
+schedule. Emit the schedule with atoms of the form start(Job, Time).
+
+Return exactly one ```clingo code block and nothing else.
+
+Your encoding was run with Clingo. The result is not a valid schedule.
+- job 11 finishes after the deadline 17
+- job 15 finishes after the deadline 17
+- job 16 finishes after the deadline 17
+- job 5 finishes after the deadline 17
+Clingo output: SATISFIABLE
+Answer: start(1,0) start(2,3) start(3,0) start(4,2) start(5,17) start(6,0) start(7,8) start(8,9) start(9,5) start(10,9) start(11,17) start(12,16) start(13,15) start(14,12) start(15,17) start(16,17)
+
+Your previous encoding:
+% Job scheduling problem with precedence constraints and machine capacity
+
+% Job definitions: job(ID, Machine, Duration)
+job(1, a, 3).
+job(2, a, 2).
+job(3, c, 4).
+job(4, b, 1).
+job(5, a, 1).
+job(6, b, 2).
+job(7, a, 4).
+job(8, c, 2).
+job(9, a, 3).
+job(10, b, 3).
+job(11, c, 4).
+job(12, d, 1).
+job(13, a, 2).
+job(14, b, 2).
+job(15, b, 4).
+job(16, d, 3).
+
+% Precedence constraints: constraint(Before, After)
+constraint(9, 11).
+constraint(7, 14).
+constraint(1, 15).
+constraint(1, 10).
+constraint(2, 16).
+constraint(3, 13).
+constraint(10, 13).
+constraint(3, 5).
+constraint(10, 14).
+constraint(4, 15).
+constraint(13, 16).
+constraint(9, 12).
+constraint(1, 14).
+constraint(9, 10).
+constraint(1, 5).
+constraint(1, 13).
+
+% Deadline
+deadline(17).
+
+% Time domain
+time(0..17).
+
+% Generate start times for each job
+{start(J, T) : time(T)} = 1 :- job(J, _, _).
+
+% Constraint: precedence constraints
+:- constraint(I, J), start(I, T1), start(J, T2), 
+   job(I, _, D1), T1 + D1 > T2.
+
+% Constraint: deadline
+:- start(J, T), job(J, _, D), T + D > deadline(17).
+
+% Constraint: machine capacity (no overlaps on same machine)
+:- start(J1, T1), start(J2, T2), J1 < J2,
+   job(J1, M, D1), job(J2, M, D2),
+   T1 + D1 > T2, T2 + D2 > T1.
+
+% Generate output
+#show start/2.
+
+
+Return a corrected program, as exactly one ```clingo code block and nothing else.

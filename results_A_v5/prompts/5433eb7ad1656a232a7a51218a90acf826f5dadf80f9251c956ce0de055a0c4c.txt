@@ -1,0 +1,114 @@
+You are solving a job-shop scheduling problem.
+
+Jobs (id, machine, duration):
+(1, A, 3)
+(2, A, 3)
+(3, C, 3)
+(4, D, 3)
+(5, A, 4)
+(6, C, 4)
+(7, C, 4)
+(8, D, 3)
+(9, D, 4)
+(10, D, 4)
+(11, C, 2)
+(12, A, 3)
+(13, D, 4)
+(14, D, 1)
+(15, D, 3)
+(16, A, 3)
+Precedence constraints (i before j), meaning job i must finish before job j starts:
+(9, 13)
+(9, 15)
+(12, 15)
+(9, 14)
+(1, 16)
+(2, 13)
+(5, 15)
+(11, 13)
+(8, 16)
+(3, 14)
+(5, 16)
+(1, 2)
+(9, 12)
+(2, 15)
+(1, 13)
+(5, 14)
+Deadline (all jobs must finish by): 22
+No two jobs on the same machine may overlap in time.
+
+Write a Clingo (ASP) program that encodes this problem and whose answer set gives a valid
+schedule. Emit the schedule with atoms of the form start(Job, Time).
+
+Return exactly one ```clingo code block and nothing else.
+
+Your encoding was run with Clingo. The result is not a valid schedule.
+- jobs 1 and 12 overlap on machine A
+- jobs 3 and 11 overlap on machine C
+- jobs 3 and 6 overlap on machine C
+- jobs 6 and 11 overlap on machine C
+- jobs 13 and 15 overlap on machine D
+- jobs 4 and 10 overlap on machine D
+- jobs 4 and 8 overlap on machine D
+- jobs 8 and 10 overlap on machine D
+Clingo output: SATISFIABLE
+Answer: start(3,0) start(4,0) start(5,0) start(6,0) start(8,0) start(10,0) start(11,0) start(9,5) start(1,9) start(12,9) start(2,13) start(13,16) start(15,16) start(7,18) start(16,19) start(14,21)
+
+Your previous encoding:
+% Job shop scheduling problem
+
+% Define jobs with their machine and duration
+job(1, a, 3).
+job(2, a, 3).
+job(3, c, 3).
+job(4, d, 3).
+job(5, a, 4).
+job(6, c, 4).
+job(7, c, 4).
+job(8, d, 3).
+job(9, d, 4).
+job(10, d, 4).
+job(11, c, 2).
+job(12, a, 3).
+job(13, d, 4).
+job(14, d, 1).
+job(15, d, 3).
+job(16, a, 3).
+
+% Precedence constraints
+precedes(9, 13).
+precedes(9, 15).
+precedes(12, 15).
+precedes(9, 14).
+precedes(1, 16).
+precedes(2, 13).
+precedes(5, 15).
+precedes(11, 13).
+precedes(8, 16).
+precedes(3, 14).
+precedes(5, 16).
+precedes(1, 2).
+precedes(9, 12).
+precedes(2, 15).
+precedes(1, 13).
+precedes(5, 14).
+
+% Each job must start at some time
+{start(J, T) : T = 0..22} = 1 :- job(J, _, _).
+
+% Constraint: job must finish by deadline
+:- start(J, T), job(J, _, D), T + D > 22.
+
+% Constraint: precedence - job i must finish before job j starts
+:- precedes(I, J), start(I, T1), job(I, _, D1), start(J, T2), T1 + D1 > T2.
+
+% Constraint: no two jobs on same machine overlap
+:- start(J1, T1), start(J2, T2), J1 < J2, job(J1, M, D1), job(J2, M, D2), M = M,
+   T1 < T2, T2 < T1 + D1.
+:- start(J1, T1), start(J2, T2), J1 < J2, job(J1, M, D1), job(J2, M, D2), M = M,
+   T2 < T1, T1 < T2 + D2.
+
+#show start/2.
+
+
+Return a corrected program, as exactly one ```clingo code block and nothing else.

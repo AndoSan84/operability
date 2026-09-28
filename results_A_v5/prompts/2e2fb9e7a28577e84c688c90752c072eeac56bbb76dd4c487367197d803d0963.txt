@@ -1,0 +1,121 @@
+You are solving a job-shop scheduling problem.
+
+Jobs (id, machine, duration):
+(1, C, 2)
+(2, B, 4)
+(3, C, 3)
+(4, D, 2)
+(5, A, 1)
+(6, B, 2)
+(7, C, 3)
+(8, C, 1)
+(9, A, 1)
+(10, B, 3)
+(11, C, 4)
+(12, D, 4)
+(13, A, 4)
+(14, B, 3)
+(15, B, 3)
+(16, D, 4)
+Precedence constraints (i before j), meaning job i must finish before job j starts:
+(2, 12)
+(2, 10)
+(1, 6)
+(7, 8)
+(11, 12)
+(6, 11)
+(2, 4)
+(1, 16)
+(10, 16)
+(10, 11)
+(11, 16)
+(2, 5)
+(8, 12)
+(3, 7)
+(1, 5)
+(12, 13)
+Deadline (all jobs must finish by): 21
+No two jobs on the same machine may overlap in time.
+
+Write a Clingo (ASP) program that encodes this problem and whose answer set gives a valid
+schedule. Emit the schedule with atoms of the form start(Job, Time).
+
+Return exactly one ```clingo code block and nothing else.
+
+Your encoding was run with Clingo. The result is not a valid schedule.
+- jobs 5 and 13 overlap on machine A
+- jobs 14 and 15 overlap on machine B
+- jobs 6 and 10 overlap on machine B
+- jobs 1 and 3 overlap on machine C
+- jobs 4 and 16 overlap on machine D
+Clingo output: SATISFIABLE
+Answer: start(1,0) start(3,0) start(9,0) start(2,1) start(7,3) start(6,6) start(8,6) start(10,6) start(11,9) start(12,13) start(4,17) start(5,17) start(13,17) start(16,17) start(14,18) start(15,18)
+
+Your previous encoding:
+% Job shop scheduling problem
+% Jobs: (id, machine, duration)
+job(1, c, 2).
+job(2, b, 4).
+job(3, c, 3).
+job(4, d, 2).
+job(5, a, 1).
+job(6, b, 2).
+job(7, c, 3).
+job(8, c, 1).
+job(9, a, 1).
+job(10, b, 3).
+job(11, c, 4).
+job(12, d, 4).
+job(13, a, 4).
+job(14, b, 3).
+job(15, b, 3).
+job(16, d, 4).
+
+% Precedence constraints
+before(2, 12).
+before(2, 10).
+before(1, 6).
+before(7, 8).
+before(11, 12).
+before(6, 11).
+before(2, 4).
+before(1, 16).
+before(10, 16).
+before(10, 11).
+before(11, 16).
+before(2, 5).
+before(8, 12).
+before(3, 7).
+before(1, 5).
+before(12, 13).
+
+% Deadline
+deadline(21).
+
+% Generate start times for each job
+{start(J, T) : T = 0..20} = 1 :- job(J, _, _).
+
+% Define finish time
+finish(J, F) :- start(J, T), job(J, _, D), F = T + D.
+
+% Constraint: all jobs must finish by deadline
+:- finish(J, F), deadline(D), F > D.
+
+% Constraint: respect precedence constraints
+:- before(I, J), finish(I, FI), start(J, SJ), FI > SJ.
+
+% Constraint: no two jobs on the same machine can overlap
+% Two jobs overlap if one starts before the other finishes
+:- job(J1, M, _), job(J2, M, _), J1 < J2, 
+   start(J1, T1), start(J2, T2),
+   finish(J1, F1), finish(J2, F2),
+   T1 < T2, T2 < F1.
+:- job(J1, M, _), job(J2, M, _), J1 < J2, 
+   start(J1, T1), start(J2, T2),
+   finish(J1, F1), finish(J2, F2),
+   T2 < T1, T1 < F2.
+
+#show start/2.
+
+
+Return a corrected program, as exactly one ```clingo code block and nothing else.

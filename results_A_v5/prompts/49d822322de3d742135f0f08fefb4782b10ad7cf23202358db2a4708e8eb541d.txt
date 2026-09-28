@@ -1,0 +1,130 @@
+You are solving a job-shop scheduling problem.
+
+Jobs (id, machine, duration):
+(1, A, 1)
+(2, B, 2)
+(3, C, 4)
+(4, D, 2)
+(5, A, 2)
+(6, B, 3)
+(7, C, 3)
+(8, D, 1)
+(9, B, 3)
+(10, A, 2)
+(11, B, 1)
+(12, B, 1)
+(13, B, 4)
+(14, B, 3)
+(15, C, 1)
+(16, B, 1)
+Precedence constraints (i before j), meaning job i must finish before job j starts:
+(4, 8)
+(9, 13)
+(5, 14)
+(11, 13)
+(3, 13)
+(12, 14)
+(10, 15)
+(5, 10)
+(5, 15)
+(4, 6)
+(11, 14)
+(8, 16)
+(5, 13)
+(4, 11)
+(2, 12)
+(7, 11)
+Deadline (all jobs must finish by): 18
+No two jobs on the same machine may overlap in time.
+
+Write a Clingo (ASP) program that encodes this problem and whose answer set gives a valid
+schedule. Emit the schedule with atoms of the form start(Job, Time).
+
+Return exactly one ```clingo code block and nothing else.
+
+Your encoding was run with Clingo. The result is not a valid schedule.
+base].
+<block>:14:89-90: note: 'D' is unsafe
+<block>:15:1-23: error: unsafe variables in:
+  machine_for_job(5,A):-[#inc_base].
+<block>:15:20-21: note: 'A' is unsafe
+<block>:15:24-46: error: unsafe variables in:
+  machine_for_job(6,B):-[#inc_base].
+<block>:15:43-44: note: 'B' is unsafe
+<block>:15:47-69: error: unsafe variables in:
+  machine_for_job(7,C):-[#inc_base].
+<block>:15:66-67: note: 'C' is unsafe
+<block>:15:70-92: error: unsafe variables in:
+  machine_for_job(8,D):-[#inc_base].
+<block>:15:89-90: note: 'D' is unsafe
+<block>:16:1-23: error: unsafe variables in:
+  machine_for_job(9,B):-[#inc_base].
+<block>:16:20-21: note: 'B' is unsafe
+<block>:16:24-47: error: unsafe variables in:
+  machine_for_job(10,A):-[#inc_base].
+<block>:16:44-45: note: 'A' is unsafe
+<block>:16:48-71: error: unsafe variables in:
+  machine_for_job(11,B):-[#inc_base].
+<block>:16:68-69: note: 'B' is unsafe
+<block>:16:72-95: error: unsafe variables in:
+  machine_for_job(12,B):-[#inc_base].
+<block>:16:92-93: note: 'B' is unsafe
+<block>:17:1-24: error: unsafe variables in:
+  machine_for_job(13,B):-[#inc_base].
+<block>:17:21-22: note: 'B' is unsafe
+<block>:17:25-48: error: unsafe variables in:
+  machine_for_job(14,B):-[#inc_base].
+<block>:17:45-46: note: 'B' is unsafe
+<block>:17:49-72: error: unsafe variables in:
+  machine_for_job(15,C):-[#inc_base].
+<block>:17:69-70: note: 'C' is unsafe
+<block>:17:73-96: error: unsafe variables in:
+  machine_for_job(16,B):-[#inc_base].
+<block>:17:93-94: note: 'B' is unsafe
+
+Your previous encoding:
+% Job shop scheduling problem
+
+% Define jobs, machines, and durations
+job(1). job(2). job(3). job(4). job(5). job(6). job(7). job(8). job(9). job(10).
+job(11). job(12). job(13). job(14). job(15). job(16).
+
+machine(A). machine(B). machine(C). machine(D).
+
+duration(1, 1). duration(2, 2). duration(3, 4). duration(4, 2). duration(5, 2). 
+duration(6, 3). duration(7, 3). duration(8, 1). duration(9, 3). duration(10, 2).
+duration(11, 1). duration(12, 1). duration(13, 4). duration(14, 3). duration(15, 1).
+duration(16, 1).
+
+machine_for_job(1, A). machine_for_job(2, B). machine_for_job(3, C). machine_for_job(4, D).
+machine_for_job(5, A). machine_for_job(6, B). machine_for_job(7, C). machine_for_job(8, D).
+machine_for_job(9, B). machine_for_job(10, A). machine_for_job(11, B). machine_for_job(12, B).
+machine_for_job(13, B). machine_for_job(14, B). machine_for_job(15, C). machine_for_job(16, B).
+
+% Precedence constraints
+before(4, 8). before(9, 13). before(5, 14). before(11, 13). before(3, 13).
+before(12, 14). before(10, 15). before(5, 10). before(5, 15). before(4, 6).
+before(11, 14). before(8, 16). before(5, 13). before(4, 11). before(2, 12).
+before(7, 11).
+
+% Time horizon
+time(0..18).
+
+% Each job starts at exactly one time
+1 { start(J, T) : time(T) } 1 :- job(J).
+
+% Precedence constraints
+:- before(I, J), start(I, T1), start(J, T2), duration(I, D1), T1 + D1 > T2.
+
+% No overlaps on same machine
+:- start(J1, T1), start(J2, T2), J1 < J2, machine_for_job(J1, M), machine_for_job(J2, M),
+   duration(J1, D1), duration(J2, D2),
+   T1 + D1 > T2, T2 + D2 > T1.
+
+% All jobs must finish by deadline
+:- start(J, T), duration(J, D), T + D > 18.
+
+#show start/2.
+
+
+Return a corrected program, as exactly one ```clingo code block and nothing else.

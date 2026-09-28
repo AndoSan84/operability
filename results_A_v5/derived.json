@@ -1,3 +1,49 @@
 {
-  "backend_version": "2.1.282"
+  "backend_version": "2.1.282",
+  "m3": {
+    "point": [
+      16,
+      4,
+      16
+    ],
+    "moved": true,
+    "pilots": [
+      {
+        "point": [
+          18,
+          5,
+          18
+        ],
+        "attempt1_valid": {
+          "m3_nl": 0,
+          "m3_asp": 4
+        },
+        "n": 12,
+        "contamination": {
+          "m3_nl": 0.0,
+          "m3_asp": 0.0
+        },
+        "latency_p99_ms": 15689
+      },
+      {
+        "point": [
+          16,
+          4,
+          16
+        ],
+        "attempt1_valid": {
+          "m3_nl": 1,
+          "m3_asp": 4
+        },
+        "n": 12,
+        "contamination": {
+          "m3_nl": 0.0,
+          "m3_asp": 0.0
+        },
+        "latency_p99_ms": 14882
+      }
+    ],
+    "pilot_passed": true,
+    "timeout_s": 180
+  }
 }

@@ -1,0 +1,112 @@
+You are solving a job-shop scheduling problem.
+
+Jobs (id, machine, duration):
+(1, A, 2)
+(2, B, 2)
+(3, C, 1)
+(4, B, 1)
+(5, A, 1)
+(6, B, 3)
+(7, C, 3)
+(8, D, 3)
+(9, C, 2)
+(10, A, 1)
+(11, C, 1)
+(12, A, 3)
+(13, A, 3)
+(14, B, 3)
+(15, C, 3)
+(16, D, 3)
+Precedence constraints (i before j), meaning job i must finish before job j starts:
+(1, 16)
+(8, 15)
+(2, 11)
+(10, 13)
+(1, 5)
+(9, 15)
+(9, 12)
+(9, 10)
+(6, 12)
+(2, 13)
+(10, 11)
+(4, 14)
+(2, 12)
+(13, 16)
+(5, 13)
+(2, 5)
+Deadline (all jobs must finish by): 10
+No two jobs on the same machine may overlap in time.
+
+Write a Clingo (ASP) program that encodes this problem and whose answer set gives a valid
+schedule. Emit the schedule with atoms of the form start(Job, Time).
+
+Return exactly one ```clingo code block and nothing else.
+
+Your encoding was run with Clingo. The result is not a valid schedule.
+<block>:59:25-27: error: syntax error, unexpected <=, expecting )
+
+Your previous encoding:
+% Job-shop scheduling problem with precedence constraints and deadline
+
+% Facts about jobs
+job(1, a, 2).
+job(2, b, 2).
+job(3, c, 1).
+job(4, b, 1).
+job(5, a, 1).
+job(6, b, 3).
+job(7, c, 3).
+job(8, d, 3).
+job(9, c, 2).
+job(10, a, 1).
+job(11, c, 1).
+job(12, a, 3).
+job(13, a, 3).
+job(14, b, 3).
+job(15, c, 3).
+job(16, d, 3).
+
+% Precedence constraints
+before(1, 16).
+before(8, 15).
+before(2, 11).
+before(10, 13).
+before(1, 5).
+before(9, 15).
+before(9, 12).
+before(9, 10).
+before(6, 12).
+before(2, 13).
+before(10, 11).
+before(4, 14).
+before(2, 12).
+before(13, 16).
+before(5, 13).
+before(2, 5).
+
+% Deadline
+deadline(10).
+
+% Maximum time
+max_time(10).
+
+% Variables: start time for each job
+{start(J, T) : job(J, _, _), T = 0..9} = 1 :- job(J, _, _).
+
+% Derive finish time
+finish(J, F) :- start(J, T), job(J, _, D), F = T + D.
+
+% Constraint: all jobs must finish by deadline
+:- start(J, T), job(J, _, D), T + D > 10.
+
+% Constraint: precedence constraints
+:- before(I, J), start(I, TI), start(J, TJ), job(I, _, DI), TI + DI > TJ.
+
+% Constraint: no two jobs on same machine overlap
+:- start(J1, T1), start(J2, T2), job(J1, M, D1), job(J2, M, D2), 
+   J1 < J2, not(T1 + D1 <= T2 ; T2 + D2 <= T1).
+
+#show start/2.
+
+
+Return a corrected program, as exactly one ```clingo code block and nothing else.

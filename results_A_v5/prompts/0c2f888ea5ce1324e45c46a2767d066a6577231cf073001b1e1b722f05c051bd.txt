@@ -1,0 +1,108 @@
+You are solving a job-shop scheduling problem.
+
+Jobs (id, machine, duration):
+(1, A, 2)
+(2, B, 1)
+(3, A, 2)
+(4, C, 1)
+(5, A, 4)
+(6, B, 4)
+(7, C, 3)
+(8, D, 2)
+(9, B, 2)
+(10, C, 1)
+(11, A, 1)
+(12, D, 3)
+(13, B, 3)
+(14, A, 4)
+(15, C, 3)
+(16, C, 1)
+Precedence constraints (i before j), meaning job i must finish before job j starts:
+(6, 14)
+(4, 10)
+(4, 5)
+(13, 16)
+(11, 14)
+(1, 2)
+(4, 6)
+(5, 10)
+(7, 13)
+(9, 13)
+(6, 13)
+(7, 12)
+(8, 14)
+(1, 7)
+(5, 16)
+(10, 15)
+Deadline (all jobs must finish by): 13
+No two jobs on the same machine may overlap in time.
+
+Write a Clingo (ASP) program that encodes this problem and whose answer set gives a valid
+schedule. Emit the schedule with atoms of the form start(Job, Time).
+
+Return exactly one ```clingo code block and nothing else.
+
+Your encoding was run with Clingo. The result is not a valid schedule.
+<block>:46:1-57: error: unsafe variables in:
+  #void:-[#inc_base];0=0;job_duration(J,D);start(J,T);(T+D)>deadline(#Anon0).
+<block>:46:54-55: note: '#Anon0' is unsafe
+
+Your previous encoding:
+% Job-shop scheduling problem in ASP
+
+% Facts
+job(1..16).
+machine(a;b;c;d).
+
+% Job properties: job_machine(Job, Machine), job_duration(Job, Duration)
+job_machine(1,a). job_duration(1,2).
+job_machine(2,b). job_duration(2,1).
+job_machine(3,a). job_duration(3,2).
+job_machine(4,c). job_duration(4,1).
+job_machine(5,a). job_duration(5,4).
+job_machine(6,b). job_duration(6,4).
+job_machine(7,c). job_duration(7,3).
+job_machine(8,d). job_duration(8,2).
+job_machine(9,b). job_duration(9,2).
+job_machine(10,c). job_duration(10,1).
+job_machine(11,a). job_duration(11,1).
+job_machine(12,d). job_duration(12,3).
+job_machine(13,b). job_duration(13,3).
+job_machine(14,a). job_duration(14,4).
+job_machine(15,c). job_duration(15,3).
+job_machine(16,c). job_duration(16,1).
+
+% Precedence constraints
+precedes(6,14). precedes(4,10). precedes(4,5).
+precedes(13,16). precedes(11,14). precedes(1,2).
+precedes(4,6). precedes(5,10). precedes(7,13).
+precedes(9,13). precedes(6,13). precedes(7,12).
+precedes(8,14). precedes(1,7). precedes(5,16). precedes(10,15).
+
+% Deadline
+deadline(13).
+
+% Time domain
+time(0..13).
+
+% Generate: each job starts at exactly one time
+{ start(J, T) : time(T) } = 1 :- job(J).
+
+% Constraint: respect precedence constraints
+:- precedes(I, J), start(I, TI), start(J, TJ), 
+   job_duration(I, DI), TI + DI > TJ.
+
+% Constraint: respect deadline
+:- start(J, T), job_duration(J, D), T + D > deadline(_).
+
+% Constraint: no machine conflicts (two jobs on same machine cannot overlap)
+:- start(J1, T1), start(J2, T2), 
+   job_machine(J1, M), job_machine(J2, M),
+   J1 < J2,
+   job_duration(J1, D1), job_duration(J2, D2),
+   T1 + D1 > T2, T2 + D2 > T1.
+
+#show start/2.
+
+
+Return a corrected program, as exactly one ```clingo code block and nothing else.

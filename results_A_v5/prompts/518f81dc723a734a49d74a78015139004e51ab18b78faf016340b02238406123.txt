@@ -1,0 +1,66 @@
+You are solving a job-shop scheduling problem.
+
+Jobs (id, machine, duration):
+(1, C, 3)
+(2, A, 3)
+(3, C, 2)
+(4, D, 4)
+(5, E, 1)
+(6, A, 1)
+(7, D, 2)
+(8, B, 2)
+(9, D, 2)
+(10, E, 4)
+(11, E, 2)
+(12, B, 4)
+(13, C, 3)
+(14, D, 1)
+(15, A, 4)
+(16, A, 2)
+(17, B, 1)
+(18, C, 3)
+Precedence constraints (i before j), meaning job i must finish before job j starts:
+(7, 17)
+(8, 10)
+(5, 13)
+(2, 6)
+(11, 18)
+(8, 14)
+(10, 15)
+(6, 11)
+(8, 16)
+(8, 15)
+(2, 17)
+(17, 18)
+(2, 3)
+(7, 9)
+(16, 18)
+(6, 12)
+(5, 7)
+(9, 10)
+Deadline (all jobs must finish by): 14
+No two jobs on the same machine may overlap in time.
+
+Produce a schedule: an integer start time for every job.
+Reason in prose. Do not write code.
+End your reply with exactly one line, and write nothing after it:
+SCHEDULE: {1: t1, 2: t2, ...}
+
+Your schedule is not valid.
+- jobs 12 and 17 overlap on machine B
+- jobs 1 and 18 overlap on machine C
+- jobs 3 and 13 overlap on machine C
+- jobs 3 and 18 overlap on machine C
+- jobs 7 and 14 overlap on machine D
+- jobs 10 and 11 overlap on machine E
+- job 18 starts before job 11 finishes (job 11 must finish before job 18 starts)
+- job 18 starts before job 16 finishes (job 16 must finish before job 18 starts)
+- job 12 starts before job 6 finishes (job 6 must finish before job 12 starts)
+- job 10 starts before job 9 finishes (job 9 must finish before job 10 starts)
+
+Your previous schedule:
+SCHEDULE: {1: 5, 2: 0, 3: 3, 4: 5, 5: 0, 6: 3, 7: 1, 8: 0, 9: 3, 10: 2, 11: 4, 12: 2, 13: 1, 14: 2, 15: 6, 16: 4, 17: 3, 18: 4}
+
+Provide a corrected schedule. Reason in prose. Do not write code.
+End your reply with exactly one line, and write nothing after it:
+SCHEDULE: {1: t1, 2: t2, ...}

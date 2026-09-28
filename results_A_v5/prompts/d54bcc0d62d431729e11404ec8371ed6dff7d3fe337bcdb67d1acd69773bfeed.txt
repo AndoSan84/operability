@@ -1,0 +1,118 @@
+You are solving a job-shop scheduling problem.
+
+Jobs (id, machine, duration):
+(1, A, 4)
+(2, B, 2)
+(3, C, 1)
+(4, D, 4)
+(5, E, 1)
+(6, A, 3)
+(7, B, 3)
+(8, C, 3)
+(9, D, 4)
+(10, E, 1)
+(11, C, 3)
+(12, B, 1)
+(13, C, 3)
+(14, D, 3)
+(15, A, 2)
+(16, C, 2)
+(17, D, 4)
+(18, E, 2)
+Precedence constraints (i before j), meaning job i must finish before job j starts:
+(1, 4)
+(3, 4)
+(8, 15)
+(6, 15)
+(8, 11)
+(9, 11)
+(13, 14)
+(4, 5)
+(5, 18)
+(5, 13)
+(11, 12)
+(2, 11)
+(9, 13)
+(5, 7)
+(11, 16)
+(6, 9)
+(10, 14)
+(1, 5)
+Deadline (all jobs must finish by): 18
+No two jobs on the same machine may overlap in time.
+
+Write a Clingo (ASP) program that encodes this problem and whose answer set gives a valid
+schedule. Emit the schedule with atoms of the form start(Job, Time).
+
+Return exactly one ```clingo code block and nothing else.
+
+Your encoding was run with Clingo. The result is not a valid schedule.
+<block>:60:12-14: error: syntax error, unexpected <=, expecting )
+
+Your previous encoding:
+% Job-shop scheduling problem in ASP
+
+% Facts: jobs(JobID, Machine, Duration)
+job(1, a, 4).
+job(2, b, 2).
+job(3, c, 1).
+job(4, d, 4).
+job(5, e, 1).
+job(6, a, 3).
+job(7, b, 3).
+job(8, c, 3).
+job(9, d, 4).
+job(10, e, 1).
+job(11, c, 3).
+job(12, b, 1).
+job(13, c, 3).
+job(14, d, 3).
+job(15, a, 2).
+job(16, c, 2).
+job(17, d, 4).
+job(18, e, 2).
+
+% Precedence constraints: (i, j) means job i must finish before job j starts
+before(1, 4).
+before(3, 4).
+before(8, 15).
+before(6, 15).
+before(8, 11).
+before(9, 11).
+before(13, 14).
+before(4, 5).
+before(5, 18).
+before(5, 13).
+before(11, 12).
+before(2, 11).
+before(9, 13).
+before(5, 7).
+before(11, 16).
+before(6, 9).
+before(10, 14).
+before(1, 5).
+
+% Deadline
+deadline(18).
+
+% Generate start times for each job between 0 and deadline-1
+{start(J, T) : T = 0..17} = 1 :- job(J, _, _).
+
+% Calculate end time for each job
+end(J, T) :- start(J, S), job(J, _, D), T = S + D.
+
+% Check precedence constraints
+:- before(I, J), end(I, EndI), start(J, StartJ), EndI > StartJ.
+
+% Check deadline
+:- job(J, _, _), end(J, EndJ), deadline(D), EndJ > D.
+
+% Check machine capacity: no two jobs on same machine can overlap
+:- job(J1, M, _), job(J2, M, _), J1 < J2, start(J1, S1), start(J2, S2), end(J1, E1), end(J2, E2),
+   not (E1 <= S2 | E2 <= S1).
+
+% Output
+#show start/2.
+
+
+Return a corrected program, as exactly one ```clingo code block and nothing else.

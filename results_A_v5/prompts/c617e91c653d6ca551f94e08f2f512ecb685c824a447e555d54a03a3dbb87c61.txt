@@ -1,0 +1,145 @@
+You are solving a job-shop scheduling problem.
+
+Jobs (id, machine, duration):
+(1, A, 2)
+(2, B, 3)
+(3, C, 3)
+(4, D, 4)
+(5, A, 2)
+(6, B, 2)
+(7, D, 3)
+(8, D, 4)
+(9, A, 3)
+(10, B, 2)
+(11, B, 4)
+(12, D, 1)
+(13, D, 2)
+(14, B, 4)
+(15, C, 1)
+(16, C, 2)
+Precedence constraints (i before j), meaning job i must finish before job j starts:
+(13, 14)
+(1, 10)
+(11, 15)
+(13, 16)
+(6, 10)
+(10, 13)
+(2, 4)
+(1, 8)
+(2, 6)
+(9, 15)
+(6, 7)
+(10, 11)
+(4, 16)
+(11, 12)
+(3, 10)
+(3, 12)
+Deadline (all jobs must finish by): 16
+No two jobs on the same machine may overlap in time.
+
+Write a Clingo (ASP) program that encodes this problem and whose answer set gives a valid
+schedule. Emit the schedule with atoms of the form start(Job, Time).
+
+Return exactly one ```clingo code block and nothing else.
+
+Your encoding was run with Clingo. The result is not a valid schedule.
+9: error: unsafe variables in:
+  job_machine(4,D):-[#inc_base].
+<block>:14:16-17: note: 'D' is unsafe
+<block>:15:1-19: error: unsafe variables in:
+  job_machine(5,A):-[#inc_base].
+<block>:15:16-17: note: 'A' is unsafe
+<block>:16:1-19: error: unsafe variables in:
+  job_machine(6,B):-[#inc_base].
+<block>:16:16-17: note: 'B' is unsafe
+<block>:17:1-19: error: unsafe variables in:
+  job_machine(7,D):-[#inc_base].
+<block>:17:16-17: note: 'D' is unsafe
+<block>:18:1-19: error: unsafe variables in:
+  job_machine(8,D):-[#inc_base].
+<block>:18:16-17: note: 'D' is unsafe
+<block>:19:1-19: error: unsafe variables in:
+  job_machine(9,A):-[#inc_base].
+<block>:19:16-17: note: 'A' is unsafe
+<block>:20:1-20: error: unsafe variables in:
+  job_machine(10,B):-[#inc_base].
+<block>:20:17-18: note: 'B' is unsafe
+<block>:21:1-20: error: unsafe variables in:
+  job_machine(11,B):-[#inc_base].
+<block>:21:17-18: note: 'B' is unsafe
+<block>:22:1-20: error: unsafe variables in:
+  job_machine(12,D):-[#inc_base].
+<block>:22:17-18: note: 'D' is unsafe
+<block>:23:1-20: error: unsafe variables in:
+  job_machine(13,D):-[#inc_base].
+<block>:23:17-18: note: 'D' is unsafe
+<block>:24:1-20: error: unsafe variables in:
+  job_machine(14,B):-[#inc_base].
+<block>:24:17-18: note: 'B' is unsafe
+<block>:25:1-20: error: unsafe variables in:
+  job_machine(15,C):-[#inc_base].
+<block>:25:17-18: note: 'C' is unsafe
+<block>:26:1-20: error: unsafe variables in:
+  job_machine(16,C):-[#inc_base].
+<block>:26:17-18: note: 'C' is unsafe
+
+Your previous encoding:
+% Job shop scheduling problem
+
+% Jobs
+job(1). job(2). job(3). job(4). job(5). job(6). job(7). job(8).
+job(9). job(10). job(11). job(12). job(13). job(14). job(15). job(16).
+
+% Machines
+machine(A). machine(B). machine(C). machine(D).
+
+% Job properties: job_machine(Job, Machine), job_duration(Job, Duration)
+job_machine(1, A). job_duration(1, 2).
+job_machine(2, B). job_duration(2, 3).
+job_machine(3, C). job_duration(3, 3).
+job_machine(4, D). job_duration(4, 4).
+job_machine(5, A). job_duration(5, 2).
+job_machine(6, B). job_duration(6, 2).
+job_machine(7, D). job_duration(7, 3).
+job_machine(8, D). job_duration(8, 4).
+job_machine(9, A). job_duration(9, 3).
+job_machine(10, B). job_duration(10, 2).
+job_machine(11, B). job_duration(11, 4).
+job_machine(12, D). job_duration(12, 1).
+job_machine(13, D). job_duration(13, 2).
+job_machine(14, B). job_duration(14, 4).
+job_machine(15, C). job_duration(15, 1).
+job_machine(16, C). job_duration(16, 2).
+
+% Precedence constraints: before(J1, J2) means J1 must finish before J2 starts
+before(13, 14). before(1, 10). before(11, 15). before(13, 16).
+before(6, 10). before(10, 13). before(2, 4). before(1, 8).
+before(2, 6). before(9, 15). before(6, 7). before(10, 11).
+before(4, 16). before(11, 12). before(3, 10). before(3, 12).
+
+% Deadline
+deadline(16).
+
+% Variables: start times range from 0 to deadline
+time(0..16).
+
+% Each job must be assigned a start time
+{start(J, T) : time(T)} = 1 :- job(J).
+
+% Precedence constraint: if J1 must finish before J2 starts
+:- before(J1, J2), start(J1, T1), start(J2, T2), 
+   job_duration(J1, D1), T1 + D1 > T2.
+
+% No overlap on same machine
+:- job_machine(J1, M), job_machine(J2, M), J1 < J2,
+   start(J1, T1), start(J2, T2),
+   job_duration(J1, D1), job_duration(J2, D2),
+   T1 + D1 > T2, T2 + D2 > T1.
+
+% All jobs must finish by deadline
+:- start(J, T), job_duration(J, D), deadline(DL), T + D > DL.
+
+#show start/2.
+
+
+Return a corrected program, as exactly one ```clingo code block and nothing else.
