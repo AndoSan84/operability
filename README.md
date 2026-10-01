@@ -5,6 +5,16 @@ the history and the tags are part of the evidence, since they show that every de
 analysis script was committed before the calls it governs. Read `git log --oneline` alongside this
 file.
 
+This repository contains the experiments of the revised paper, run under a single pre-registered
+protocol. The amendment files record, in order, every decision taken during the work, including the
+reasons for re-running the original experiments; they are kept as written. Analyses and findings that
+came after the pre-registered ones are in `POSTHOC-NOTES.md` and `analysis/posthoc/`.
+
+**Names used in the paper.** Experiment 1 (maze) includes module M2 (`results_A_v4/`);
+Experiment 2A (interpretable feedback) is module M1 (`results_A_v3/`); Experiment 2B (the medium
+under an identical loop) is module M3 (`results_A_v5/`). The context-strip design (Experiment B)
+was pre-registered and not run.
+
 ## Reading order
 
 1. `experiment-B-context-strip.md`, `ORCHESTRATOR.md` — the original plan and the harness rules
@@ -15,6 +25,7 @@ file.
 3. `AMENDMENTS-A-v2.md`, `-v3.md`, `-v4.md` — why the model and thinking regime changed, and M2.
 4. `experiment-A-v5-M3.md` + `AMENDMENTS-A-v5.md` — M3.
 5. The `REPORT.md` and `DEVIATIONS.md` in each `results_A*/` directory.
+6. `POSTHOC-NOTES.md` and `analysis/posthoc/` — analyses run after the pre-registered ones.
 
 ## Runs and results
 
