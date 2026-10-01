@@ -1,0 +1,94 @@
+You are solving a job-shop scheduling problem.
+
+Jobs (id, machine, duration):
+(1, B, 3)
+(2, B, 3)
+(3, C, 1)
+(4, D, 4)
+(5, A, 4)
+(6, B, 3)
+(7, A, 2)
+(8, D, 1)
+(9, C, 2)
+(10, B, 4)
+(11, C, 2)
+(12, D, 4)
+(13, A, 1)
+(14, B, 1)
+(15, C, 2)
+(16, D, 1)
+Precedence constraints (i before j), meaning job i must finish before job j starts:
+(8, 9)
+(5, 12)
+(6, 10)
+(5, 7)
+(2, 13)
+(1, 12)
+(4, 6)
+(2, 7)
+(9, 11)
+(2, 12)
+(7, 14)
+(14, 15)
+(2, 6)
+(1, 11)
+(2, 10)
+(3, 4)
+Deadline (all jobs must finish by): 14
+No two jobs on the same machine may overlap in time.
+
+Write a Clingo (ASP) program that encodes this problem and whose answer set gives a valid
+schedule. Emit the schedule with atoms of the form start(Job, Time).
+
+Return exactly one ```clingo code block and nothing else.
+
+Your encoding was run with Clingo. The result is not a valid schedule.
+Clingo found no answer set, although the instance admits a valid schedule: some constraint in your encoding is stronger than the specification.
+
+Your previous encoding:
+% Job-shop scheduling problem encoded in ASP
+
+% Facts about jobs
+job(1). job(2). job(3). job(4). job(5). job(6). job(7). job(8).
+job(9). job(10). job(11). job(12). job(13). job(14). job(15). job(16).
+
+duration(1, 3). duration(2, 3). duration(3, 1). duration(4, 4).
+duration(5, 4). duration(6, 3). duration(7, 2). duration(8, 1).
+duration(9, 2). duration(10, 4). duration(11, 2). duration(12, 4).
+duration(13, 1). duration(14, 1). duration(15, 2). duration(16, 1).
+
+machine(1, b). machine(2, b). machine(3, c). machine(4, d).
+machine(5, a). machine(6, b). machine(7, a). machine(8, d).
+machine(9, c). machine(10, b). machine(11, c). machine(12, d).
+machine(13, a). machine(14, b). machine(15, c). machine(16, d).
+
+% Precedence constraints
+before(8, 9). before(5, 12). before(6, 10). before(5, 7).
+before(2, 13). before(1, 12). before(4, 6). before(2, 7).
+before(9, 11). before(2, 12). before(7, 14). before(14, 15).
+before(2, 6). before(1, 11). before(2, 10). before(3, 4).
+
+deadline(14).
+
+% Domain for start times
+{start(J, T) : job(J), T = 0..14} = 1 :- job(J).
+
+% Calculate end time
+end(J, T) :- start(J, S), duration(J, D), T = S + D, job(J).
+
+% Enforce deadline
+:- start(J, S), duration(J, D), S + D > 14, job(J).
+
+% Enforce precedence constraints
+:- before(I, J), end(I, T1), start(J, T2), T1 > T2.
+
+% Enforce machine constraints (no overlaps)
+:- machine(J1, M), machine(J2, M), J1 < J2,
+   start(J1, S1), start(J2, S2), duration(J1, D1),
+   S1 + D1 > S2, S2 + D1 > S1.
+
+% Symmetry breaking: prefer earlier start times
+#minimize {T,J : start(J, T)}.
+
+
+Return a corrected program, as exactly one ```clingo code block and nothing else.

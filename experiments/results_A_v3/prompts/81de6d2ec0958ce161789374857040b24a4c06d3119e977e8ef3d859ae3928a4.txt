@@ -1,0 +1,124 @@
+You are solving a job-shop scheduling problem.
+
+Jobs (id, machine, duration):
+(1, A, 4)
+(2, B, 1)
+(3, C, 3)
+(4, D, 3)
+(5, E, 1)
+(6, C, 3)
+(7, B, 3)
+(8, C, 1)
+(9, D, 4)
+(10, E, 2)
+(11, A, 4)
+(12, B, 1)
+(13, C, 4)
+(14, D, 3)
+(15, E, 1)
+(16, A, 3)
+(17, B, 3)
+(18, C, 4)
+Precedence constraints (i before j), meaning job i must finish before job j starts:
+(1, 6)
+(4, 16)
+(9, 11)
+(5, 14)
+(2, 7)
+(15, 16)
+(1, 18)
+(6, 14)
+(6, 12)
+(1, 9)
+(10, 11)
+(17, 18)
+(9, 10)
+(8, 9)
+(9, 15)
+(7, 9)
+(8, 16)
+(8, 17)
+Deadline (all jobs must finish by): 16
+No two jobs on the same machine may overlap in time.
+
+Write a Clingo (ASP) program that encodes this problem and whose answer set gives a valid
+schedule. Emit the schedule with atoms of the form start(Job, Time).
+
+Return exactly one ```clingo code block and nothing else.
+
+Your encoding was run with Clingo. It did not produce a valid schedule.
+
+Your previous encoding:
+% Job shop scheduling problem in ASP
+
+% Input data
+job(1..18).
+machine(job(J), M) :- job_info(J, M, _).
+duration(job(J), D) :- job_info(J, _, D).
+
+job_info(1, a, 4).
+job_info(2, b, 1).
+job_info(3, c, 3).
+job_info(4, d, 3).
+job_info(5, e, 1).
+job_info(6, c, 3).
+job_info(7, b, 3).
+job_info(8, c, 1).
+job_info(9, d, 4).
+job_info(10, e, 2).
+job_info(11, a, 4).
+job_info(12, b, 1).
+job_info(13, c, 4).
+job_info(14, d, 3).
+job_info(15, e, 1).
+job_info(16, a, 3).
+job_info(17, b, 3).
+job_info(18, c, 4).
+
+% Precedence constraints
+prec(1, 6).
+prec(4, 16).
+prec(9, 11).
+prec(5, 14).
+prec(2, 7).
+prec(15, 16).
+prec(1, 18).
+prec(6, 14).
+prec(6, 12).
+prec(1, 9).
+prec(10, 11).
+prec(17, 18).
+prec(9, 10).
+prec(8, 9).
+prec(9, 15).
+prec(7, 9).
+prec(8, 16).
+prec(8, 17).
+
+% Deadline
+deadline(16).
+
+% Decision: start time for each job
+{start(J, T) : T = 0..16} = 1 :- job(J).
+
+% Constraint: job must finish by deadline
+:- start(J, T), duration(job(J), D), T + D > 16.
+
+% Constraint: precedence constraints
+:- prec(I, J), start(I, TI), start(J, TJ), duration(job(I), DI), TI + DI > TJ.
+
+% Constraint: no overlap on same machine
+:- start(J1, T1), start(J2, T2), J1 < J2, 
+   machine(job(J1), M), machine(job(J2), M),
+   duration(job(J1), D1), duration(job(J2), D2),
+   T1 < T2, T2 < T1 + D1.
+
+:- start(J1, T1), start(J2, T2), J1 < J2,
+   machine(job(J1), M), machine(job(J2), M),
+   duration(job(J1), D1), duration(job(J2), D2),
+   T2 < T1, T1 < T2 + D2.
+
+#show start/2.
+
+
+Return a corrected program, as exactly one ```clingo code block and nothing else.

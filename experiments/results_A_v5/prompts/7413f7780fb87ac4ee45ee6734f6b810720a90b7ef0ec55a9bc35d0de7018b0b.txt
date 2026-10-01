@@ -1,0 +1,131 @@
+You are solving a job-shop scheduling problem.
+
+Jobs (id, machine, duration):
+(1, A, 2)
+(2, A, 2)
+(3, C, 4)
+(4, D, 2)
+(5, B, 3)
+(6, B, 4)
+(7, D, 4)
+(8, D, 3)
+(9, A, 2)
+(10, D, 3)
+(11, C, 1)
+(12, D, 4)
+(13, A, 2)
+(14, B, 4)
+(15, C, 3)
+(16, A, 3)
+Precedence constraints (i before j), meaning job i must finish before job j starts:
+(2, 3)
+(1, 4)
+(8, 12)
+(9, 14)
+(1, 9)
+(4, 10)
+(2, 5)
+(4, 12)
+(5, 10)
+(3, 4)
+(4, 9)
+(11, 16)
+(14, 16)
+(7, 12)
+(8, 9)
+(3, 6)
+Deadline (all jobs must finish by): 18
+No two jobs on the same machine may overlap in time.
+
+Write a Clingo (ASP) program that encodes this problem and whose answer set gives a valid
+schedule. Emit the schedule with atoms of the form start(Job, Time).
+
+Return exactly one ```clingo code block and nothing else.
+
+Your encoding was run with Clingo. The result is not a valid schedule.
+2: error: unsafe variables in:
+  job_machine(4,D):-[#inc_base].
+<block>:8:69-70: note: 'D' is unsafe
+<block>:9:1-18: error: unsafe variables in:
+  job_machine(5,B):-[#inc_base].
+<block>:9:15-16: note: 'B' is unsafe
+<block>:9:19-36: error: unsafe variables in:
+  job_machine(6,B):-[#inc_base].
+<block>:9:33-34: note: 'B' is unsafe
+<block>:9:37-54: error: unsafe variables in:
+  job_machine(7,D):-[#inc_base].
+<block>:9:51-52: note: 'D' is unsafe
+<block>:9:55-72: error: unsafe variables in:
+  job_machine(8,D):-[#inc_base].
+<block>:9:69-70: note: 'D' is unsafe
+<block>:10:1-18: error: unsafe variables in:
+  job_machine(9,A):-[#inc_base].
+<block>:10:15-16: note: 'A' is unsafe
+<block>:10:19-37: error: unsafe variables in:
+  job_machine(10,D):-[#inc_base].
+<block>:10:34-35: note: 'D' is unsafe
+<block>:10:38-56: error: unsafe variables in:
+  job_machine(11,C):-[#inc_base].
+<block>:10:53-54: note: 'C' is unsafe
+<block>:10:57-75: error: unsafe variables in:
+  job_machine(12,D):-[#inc_base].
+<block>:10:72-73: note: 'D' is unsafe
+<block>:11:1-19: error: unsafe variables in:
+  job_machine(13,A):-[#inc_base].
+<block>:11:16-17: note: 'A' is unsafe
+<block>:11:20-38: error: unsafe variables in:
+  job_machine(14,B):-[#inc_base].
+<block>:11:35-36: note: 'B' is unsafe
+<block>:11:39-57: error: unsafe variables in:
+  job_machine(15,C):-[#inc_base].
+<block>:11:54-55: note: 'C' is unsafe
+<block>:11:58-76: error: unsafe variables in:
+  job_machine(16,A):-[#inc_base].
+<block>:11:73-74: note: 'A' is unsafe
+
+Your previous encoding:
+% Job-shop scheduling problem in ASP
+
+% Facts
+job(1..16).
+machine(A;B;C;D).
+
+% Job to machine assignment
+job_machine(1,A). job_machine(2,A). job_machine(3,C). job_machine(4,D).
+job_machine(5,B). job_machine(6,B). job_machine(7,D). job_machine(8,D).
+job_machine(9,A). job_machine(10,D). job_machine(11,C). job_machine(12,D).
+job_machine(13,A). job_machine(14,B). job_machine(15,C). job_machine(16,A).
+
+% Job duration
+duration(1,2). duration(2,2). duration(3,4). duration(4,2).
+duration(5,3). duration(6,4). duration(7,4). duration(8,3).
+duration(9,2). duration(10,3). duration(11,1). duration(12,4).
+duration(13,2). duration(14,4). duration(15,3). duration(16,3).
+
+% Precedence constraints
+precedes(2,3). precedes(1,4). precedes(8,12). precedes(9,14).
+precedes(1,9). precedes(4,10). precedes(2,5). precedes(4,12).
+precedes(5,10). precedes(3,4). precedes(4,9). precedes(11,16).
+precedes(14,16). precedes(7,12). precedes(8,9). precedes(3,6).
+
+% Deadline
+deadline(18).
+
+% Generate start times
+{start(J,T) : job(J), T=0..18} = 1 :- job(J).
+
+% Precedence constraints
+:- precedes(I,J), start(I,TI), duration(I,DI), start(J,TJ), TI + DI > TJ.
+
+% Machine capacity constraints: no overlap
+:- job_machine(J1,M), job_machine(J2,M), J1 < J2,
+   start(J1,T1), duration(J1,D1), start(J2,T2), duration(J2,D2),
+   T1 < T2 + D2, T2 < T1 + D1.
+
+% Deadline constraint
+:- start(J,T), duration(J,D), deadline(DL), T + D > DL.
+
+#show start/2.
+
+
+Return a corrected program, as exactly one ```clingo code block and nothing else.

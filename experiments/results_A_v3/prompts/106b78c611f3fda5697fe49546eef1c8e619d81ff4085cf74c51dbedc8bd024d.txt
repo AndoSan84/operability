@@ -1,0 +1,90 @@
+You are solving a job-shop scheduling problem.
+
+Jobs (id, machine, duration):
+(1, A, 3)
+(2, E, 3)
+(3, C, 1)
+(4, D, 1)
+(5, C, 4)
+(6, A, 2)
+(7, B, 3)
+(8, C, 4)
+(9, C, 3)
+(10, E, 1)
+(11, A, 1)
+(12, B, 3)
+(13, C, 4)
+(14, D, 3)
+(15, E, 1)
+(16, A, 3)
+(17, B, 1)
+(18, A, 4)
+Precedence constraints (i before j), meaning job i must finish before job j starts:
+(1, 9)
+(16, 17)
+(6, 16)
+(3, 5)
+(1, 12)
+(3, 16)
+(8, 17)
+(5, 15)
+(13, 15)
+(4, 13)
+(7, 11)
+(4, 9)
+(6, 13)
+(5, 9)
+(5, 12)
+(9, 18)
+(5, 10)
+(2, 16)
+Deadline (all jobs must finish by): 17
+No two jobs on the same machine may overlap in time.
+
+Write a Clingo (ASP) program that encodes this problem and whose answer set gives a valid
+schedule. Emit the schedule with atoms of the form start(Job, Time).
+
+Return exactly one ```clingo code block and nothing else.
+
+Your encoding was run with Clingo. It did not produce a valid schedule.
+
+Your previous encoding:
+% Job shop scheduling problem with ASP/Clingo
+
+% Job specifications
+job(1, a, 3). job(2, e, 3). job(3, c, 1). job(4, d, 1).
+job(5, c, 4). job(6, a, 2). job(7, b, 3). job(8, c, 4).
+job(9, c, 3). job(10, e, 1). job(11, a, 1). job(12, b, 3).
+job(13, c, 4). job(14, d, 3). job(15, e, 1). job(16, a, 3).
+job(17, b, 1). job(18, a, 4).
+
+% Precedence constraints
+prec(1, 9). prec(16, 17). prec(6, 16). prec(3, 5).
+prec(1, 12). prec(3, 16). prec(8, 17). prec(5, 15).
+prec(13, 15). prec(4, 13). prec(7, 11). prec(4, 9).
+prec(6, 13). prec(5, 9). prec(5, 12). prec(9, 18).
+prec(5, 10). prec(2, 16).
+
+% Deadline
+deadline(17).
+
+% Possible start times
+time(0..17).
+
+% Each job must start at exactly one time
+{start(J, T) : time(T)} = 1 :- job(J, _, _).
+
+% Precedence constraint satisfaction
+:- prec(I, J), start(I, T1), start(J, T2), job(I, _, D1), T1 + D1 > T2.
+
+% Deadline constraint
+:- start(J, T), job(J, _, D), T + D > 17.
+
+% No two jobs on same machine can overlap
+:- start(J1, T1), start(J2, T2), job(J1, M, D1), job(J2, M, D2), 
+   J1 < J2, T1 + D1 > T2, T2 + D1 > T1.
+
+#show start/2.
+
+
+Return a corrected program, as exactly one ```clingo code block and nothing else.

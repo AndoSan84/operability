@@ -1,0 +1,47 @@
+You are solving a job-shop scheduling problem.
+
+Jobs (id, machine, duration):
+(1, A, 4)
+(2, B, 2)
+(3, D, 3)
+(4, D, 1)
+(5, E, 4)
+(6, A, 3)
+(7, A, 2)
+(8, B, 1)
+(9, D, 2)
+(10, E, 3)
+(11, A, 2)
+(12, C, 4)
+(13, D, 3)
+(14, D, 3)
+(15, C, 1)
+(16, A, 1)
+(17, B, 3)
+(18, C, 1)
+Precedence constraints (i before j), meaning job i must finish before job j starts:
+(1, 17)
+(10, 11)
+(5, 12)
+(11, 14)
+(11, 13)
+(5, 14)
+(11, 16)
+(2, 6)
+(12, 15)
+(7, 9)
+(14, 17)
+(4, 7)
+(6, 17)
+(6, 11)
+(8, 12)
+(3, 4)
+(5, 8)
+(5, 16)
+Deadline (all jobs must finish by): 15
+No two jobs on the same machine may overlap in time.
+
+Write a Clingo (ASP) program that encodes this problem and whose answer set gives a valid
+schedule. Emit the schedule with atoms of the form start(Job, Time).
+
+Return exactly one ```clingo code block and nothing else.

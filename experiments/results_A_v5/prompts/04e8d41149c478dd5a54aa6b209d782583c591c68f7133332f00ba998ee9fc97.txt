@@ -1,0 +1,115 @@
+You are solving a job-shop scheduling problem.
+
+Jobs (id, machine, duration):
+(1, B, 4)
+(2, B, 2)
+(3, C, 2)
+(4, D, 4)
+(5, A, 4)
+(6, B, 4)
+(7, C, 3)
+(8, D, 3)
+(9, A, 2)
+(10, B, 1)
+(11, D, 3)
+(12, D, 3)
+(13, A, 3)
+(14, B, 4)
+(15, C, 3)
+(16, D, 3)
+Precedence constraints (i before j), meaning job i must finish before job j starts:
+(7, 13)
+(2, 12)
+(10, 15)
+(11, 13)
+(4, 8)
+(9, 14)
+(1, 3)
+(10, 12)
+(12, 16)
+(7, 8)
+(10, 16)
+(5, 10)
+(7, 11)
+(8, 10)
+(4, 13)
+(5, 7)
+Deadline (all jobs must finish by): 19
+No two jobs on the same machine may overlap in time.
+
+Write a Clingo (ASP) program that encodes this problem and whose answer set gives a valid
+schedule. Emit the schedule with atoms of the form start(Job, Time).
+
+Return exactly one ```clingo code block and nothing else.
+
+Your encoding was run with Clingo. The result is not a valid schedule.
+<block>:46:1-62: error: unsafe variables in:
+  end(J,T):-[#inc_base];start(J,T);#p_job(#b(J),#p,#b(D));(T+D)<=deadline(#Anon0).
+<block>:46:59-60: note: '#Anon0' is unsafe
+<block>:48:1-51: error: unsafe variables in:
+  #void:-[#inc_base];0=0;start(J,T);#p_job(#b(J),#p,#b(D));(T+D)>deadline(#Anon0).
+<block>:48:48-49: note: '#Anon0' is unsafe
+
+Your previous encoding:
+% Job-shop scheduling problem in ASP
+
+% Facts: jobs with their machine and duration
+job(1, b, 4).
+job(2, b, 2).
+job(3, c, 2).
+job(4, d, 4).
+job(5, a, 4).
+job(6, b, 4).
+job(7, c, 3).
+job(8, d, 3).
+job(9, a, 2).
+job(10, b, 1).
+job(11, d, 3).
+job(12, d, 3).
+job(13, a, 3).
+job(14, b, 4).
+job(15, c, 3).
+job(16, d, 3).
+
+% Precedence constraints
+prec(7, 13).
+prec(2, 12).
+prec(10, 15).
+prec(11, 13).
+prec(4, 8).
+prec(9, 14).
+prec(1, 3).
+prec(10, 12).
+prec(12, 16).
+prec(7, 8).
+prec(10, 16).
+prec(5, 10).
+prec(7, 11).
+prec(8, 10).
+prec(4, 13).
+prec(5, 7).
+
+% Deadline
+deadline(19).
+
+% Variables: start time for each job (0..19)
+{start(J, T) : T = 0..19} = 1 :- job(J, _, _).
+
+% Job must finish by deadline
+end(J, T) :- job(J, _, D), start(J, T), T + D <= deadline(_).
+
+:- job(J, _, D), start(J, T), T + D > deadline(_).
+
+% Precedence constraints: job I must finish before job J starts
+:- prec(I, J), job(I, _, DI), job(J, _, _), start(I, TI), start(J, TJ), TI + DI > TJ.
+
+% No two jobs on the same machine can overlap
+:- job(J1, M, D1), job(J2, M, D2), J1 < J2, start(J1, T1), start(J2, T2),
+   T1 < T2, T2 < T1 + D1.
+:- job(J1, M, D1), job(J2, M, D2), J1 < J2, start(J1, T1), start(J2, T2),
+   T2 < T1, T1 < T2 + D2.
+
+#show start/2.
+
+
+Return a corrected program, as exactly one ```clingo code block and nothing else.

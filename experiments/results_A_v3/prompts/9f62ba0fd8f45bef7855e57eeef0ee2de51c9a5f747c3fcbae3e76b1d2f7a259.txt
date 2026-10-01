@@ -1,0 +1,114 @@
+You are solving a job-shop scheduling problem.
+
+Jobs (id, machine, duration):
+(1, A, 2)
+(2, B, 4)
+(3, C, 4)
+(4, D, 2)
+(5, E, 4)
+(6, A, 2)
+(7, B, 2)
+(8, C, 2)
+(9, A, 2)
+(10, E, 3)
+(11, A, 3)
+(12, B, 4)
+(13, B, 2)
+(14, D, 1)
+(15, E, 4)
+(16, A, 3)
+(17, B, 3)
+(18, C, 4)
+Precedence constraints (i before j), meaning job i must finish before job j starts:
+(5, 18)
+(9, 14)
+(5, 6)
+(7, 15)
+(10, 17)
+(1, 17)
+(9, 16)
+(5, 13)
+(10, 16)
+(10, 11)
+(7, 11)
+(3, 16)
+(5, 10)
+(12, 16)
+(1, 13)
+(2, 14)
+(4, 15)
+(2, 10)
+Deadline (all jobs must finish by): 15
+No two jobs on the same machine may overlap in time.
+
+Write a Clingo (ASP) program that encodes this problem and whose answer set gives a valid
+schedule. Emit the schedule with atoms of the form start(Job, Time).
+
+Return exactly one ```clingo code block and nothing else.
+
+Your encoding was run with Clingo. It did not produce a valid schedule.
+
+Your previous encoding:
+% Job-shop scheduling problem in ASP
+
+% Facts
+job(1, a, 2).
+job(2, b, 4).
+job(3, c, 4).
+job(4, d, 2).
+job(5, e, 4).
+job(6, a, 2).
+job(7, b, 2).
+job(8, c, 2).
+job(9, a, 2).
+job(10, e, 3).
+job(11, a, 3).
+job(12, b, 4).
+job(13, b, 2).
+job(14, d, 1).
+job(15, e, 4).
+job(16, a, 3).
+job(17, b, 3).
+job(18, c, 4).
+
+% Precedence constraints
+precedes(5, 18).
+precedes(9, 14).
+precedes(5, 6).
+precedes(7, 15).
+precedes(10, 17).
+precedes(1, 17).
+precedes(9, 16).
+precedes(5, 13).
+precedes(10, 16).
+precedes(10, 11).
+precedes(7, 11).
+precedes(3, 16).
+precedes(5, 10).
+precedes(12, 16).
+precedes(1, 13).
+precedes(2, 14).
+precedes(4, 15).
+precedes(2, 10).
+
+deadline(15).
+
+% Variables: start time for each job
+{ start(J, T) : job(J, _, _), T = 0..15 } = 1 :- job(J, _, _).
+
+% Constraint: job must finish by deadline
+:- start(J, T), job(J, _, D), deadline(DL), T + D > DL.
+
+% Constraint: precedence constraints
+:- precedes(I, J), start(I, T1), job(I, _, D1), start(J, T2), T1 + D1 > T2.
+
+% Constraint: no overlaps on same machine
+:- job(J1, M, D1), job(J2, M, D2), J1 < J2, start(J1, T1), start(J2, T2),
+   T1 < T2, T2 < T1 + D1.
+:- job(J1, M, D1), job(J2, M, D2), J1 < J2, start(J1, T1), start(J2, T2),
+   T2 < T1, T1 < T2 + D2.
+
+#show start/2.
+
+
+Return a corrected program, as exactly one ```clingo code block and nothing else.

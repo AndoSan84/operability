@@ -1,0 +1,133 @@
+You are solving a job-shop scheduling problem.
+
+Jobs (id, machine, duration):
+(1, A, 1)
+(2, B, 3)
+(3, C, 3)
+(4, A, 1)
+(5, A, 3)
+(6, B, 3)
+(7, C, 3)
+(8, D, 1)
+(9, B, 3)
+(10, D, 3)
+(11, C, 2)
+(12, D, 1)
+(13, A, 4)
+(14, B, 3)
+(15, A, 1)
+(16, B, 3)
+Precedence constraints (i before j), meaning job i must finish before job j starts:
+(8, 12)
+(10, 14)
+(2, 8)
+(6, 16)
+(2, 4)
+(4, 14)
+(10, 12)
+(1, 2)
+(1, 8)
+(2, 13)
+(6, 11)
+(11, 14)
+(1, 13)
+(1, 11)
+(1, 7)
+(6, 13)
+Deadline (all jobs must finish by): 15
+No two jobs on the same machine may overlap in time.
+
+Write a Clingo (ASP) program that encodes this problem and whose answer set gives a valid
+schedule. Emit the schedule with atoms of the form start(Job, Time).
+
+Return exactly one ```clingo code block and nothing else.
+
+Your encoding was run with Clingo. The result is not a valid schedule.
+ unsafe variables in:
+  job_machine(4,A):-[#inc_base].
+<block>:12:73-74: note: 'A' is unsafe
+<block>:13:1-19: error: unsafe variables in:
+  job_machine(5,A):-[#inc_base].
+<block>:13:16-17: note: 'A' is unsafe
+<block>:13:20-38: error: unsafe variables in:
+  job_machine(6,B):-[#inc_base].
+<block>:13:35-36: note: 'B' is unsafe
+<block>:13:39-57: error: unsafe variables in:
+  job_machine(7,C):-[#inc_base].
+<block>:13:54-55: note: 'C' is unsafe
+<block>:13:58-76: error: unsafe variables in:
+  job_machine(8,D):-[#inc_base].
+<block>:13:73-74: note: 'D' is unsafe
+<block>:14:1-19: error: unsafe variables in:
+  job_machine(9,B):-[#inc_base].
+<block>:14:16-17: note: 'B' is unsafe
+<block>:14:20-39: error: unsafe variables in:
+  job_machine(10,D):-[#inc_base].
+<block>:14:36-37: note: 'D' is unsafe
+<block>:14:40-59: error: unsafe variables in:
+  job_machine(11,C):-[#inc_base].
+<block>:14:56-57: note: 'C' is unsafe
+<block>:14:60-79: error: unsafe variables in:
+  job_machine(12,D):-[#inc_base].
+<block>:14:76-77: note: 'D' is unsafe
+<block>:15:1-20: error: unsafe variables in:
+  job_machine(13,A):-[#inc_base].
+<block>:15:17-18: note: 'A' is unsafe
+<block>:15:21-40: error: unsafe variables in:
+  job_machine(14,B):-[#inc_base].
+<block>:15:37-38: note: 'B' is unsafe
+<block>:15:41-60: error: unsafe variables in:
+  job_machine(15,A):-[#inc_base].
+<block>:15:57-58: note: 'A' is unsafe
+<block>:15:61-80: error: unsafe variables in:
+  job_machine(16,B):-[#inc_base].
+<block>:15:77-78: note: 'B' is unsafe
+
+Your previous encoding:
+% Job scheduling problem in ASP
+
+% Define jobs, machines, and durations
+job(1..16).
+machine(A; B; C; D).
+
+duration(1, 1). duration(2, 3). duration(3, 3). duration(4, 1). duration(5, 3).
+duration(6, 3). duration(7, 3). duration(8, 1). duration(9, 3). duration(10, 3).
+duration(11, 2). duration(12, 1). duration(13, 4). duration(14, 3). duration(15, 1).
+duration(16, 3).
+
+job_machine(1, A). job_machine(2, B). job_machine(3, C). job_machine(4, A).
+job_machine(5, A). job_machine(6, B). job_machine(7, C). job_machine(8, D).
+job_machine(9, B). job_machine(10, D). job_machine(11, C). job_machine(12, D).
+job_machine(13, A). job_machine(14, B). job_machine(15, A). job_machine(16, B).
+
+% Precedence constraints
+before(8, 12). before(10, 14). before(2, 8). before(6, 16). before(2, 4).
+before(4, 14). before(10, 12). before(1, 2). before(1, 8). before(2, 13).
+before(6, 11). before(11, 14). before(1, 13). before(1, 11). before(1, 7).
+before(6, 13).
+
+% Deadline
+deadline(15).
+
+% Generate start times
+time(0..15).
+{start(J, T) : time(T)} = 1 :- job(J).
+
+% Constraint: job must finish by deadline
+:- start(J, T), duration(J, D), T + D > deadline(_).
+
+% Constraint: precedence constraints
+:- before(I, J), start(I, T1), duration(I, D1), start(J, T2), T1 + D1 > T2.
+
+% Constraint: no overlap on same machine
+:- job_machine(J1, M), job_machine(J2, M), J1 < J2, 
+   start(J1, T1), start(J2, T2), duration(J1, D1), duration(J2, D2),
+   T1 < T2, T2 < T1 + D1.
+:- job_machine(J1, M), job_machine(J2, M), J1 < J2, 
+   start(J1, T1), start(J2, T2), duration(J1, D1), duration(J2, D2),
+   T2 < T1, T1 < T2 + D2.
+
+#show start/2.
+
+
+Return a corrected program, as exactly one ```clingo code block and nothing else.

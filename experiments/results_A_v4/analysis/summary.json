@@ -1,0 +1,341 @@
+{
+  "M1": {
+    "module": "M1",
+    "domain": "asp",
+    "confirmatory": true,
+    "attempt1": {
+      "n": 0,
+      "single_shot_success": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "syntactic_failure": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "eligible_failure": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "unsat_among_eligible": 0,
+      "infrastructure_excluded": 0
+    },
+    "branched_target": 30,
+    "n_branched": 0,
+    "target_reached": false,
+    "n_branched_complete": 0,
+    "n_branched_incomplete": 0,
+    "primary": {
+      "population": "runnable attempt 1 that failed semantically",
+      "n": 0,
+      "verdict": "untestable: no branched instances"
+    },
+    "sensitivity_invalid_schedule_only": {
+      "population": "invalid schedule only (UNSAT excluded)",
+      "n": 0,
+      "verdict": "untestable: no branched instances"
+    },
+    "success_within_3": {
+      "binary": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "diagnostic": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "mcnemar": {
+        "n_pairs": 0,
+        "b": 0,
+        "c": 0,
+        "p": 1.0
+      }
+    },
+    "uptake": {
+      "binary": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "diagnostic": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      }
+    },
+    "regression": {
+      "binary": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "diagnostic": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      }
+    },
+    "contamination": {
+      "shared": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "binary": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "diagnostic": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      }
+    }
+  },
+  "M4": {
+    "module": "M4",
+    "domain": "asp",
+    "confirmatory": false,
+    "attempt1": {
+      "n": 0,
+      "single_shot_success": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "syntactic_failure": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "eligible_failure": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "unsat_among_eligible": 0,
+      "infrastructure_excluded": 0
+    },
+    "branched_target": 6,
+    "n_branched": 0,
+    "target_reached": false,
+    "n_branched_complete": 0,
+    "n_branched_incomplete": 0,
+    "primary": {
+      "population": "runnable attempt 1 that failed semantically",
+      "n": 0,
+      "verdict": "untestable: no branched instances"
+    },
+    "sensitivity_invalid_schedule_only": {
+      "population": "invalid schedule only (UNSAT excluded)",
+      "n": 0,
+      "verdict": "untestable: no branched instances"
+    },
+    "success_within_3": {
+      "binary": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "diagnostic": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "mcnemar": {
+        "n_pairs": 0,
+        "b": 0,
+        "c": 0,
+        "p": 1.0
+      }
+    },
+    "uptake": {
+      "binary": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "diagnostic": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      }
+    },
+    "regression": {
+      "binary": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "diagnostic": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      }
+    },
+    "contamination": {
+      "shared": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "binary": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "diagnostic": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      }
+    }
+  },
+  "M2": {
+    "n": 20,
+    "success": {
+      "m2_nl": {
+        "k": 0,
+        "n": 20,
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.16113012549493322
+        ]
+      },
+      "m2_mental": {
+        "k": 0,
+        "n": 20,
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.16113012549493322
+        ]
+      },
+      "m2_exec": {
+        "k": 19,
+        "n": 20,
+        "rate": 0.95,
+        "ci95": [
+          0.7638641064874331,
+          0.9911187805671268
+        ]
+      }
+    },
+    "nl_vs_mental": {
+      "n_pairs": 20,
+      "b": 0,
+      "c": 0,
+      "p": 1.0
+    },
+    "mental_vs_exec": {
+      "n_pairs": 20,
+      "b": 19,
+      "c": 0,
+      "p": 3.814697265625e-06
+    },
+    "note": "exploratory; single-shot, n = 20"
+  }
+}

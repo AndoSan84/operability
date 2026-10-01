@@ -1,0 +1,58 @@
+You are solving a job-shop scheduling problem.
+
+Jobs (id, machine, duration):
+(1, A, 1)
+(2, B, 2)
+(3, C, 3)
+(4, D, 3)
+(5, A, 2)
+(6, B, 1)
+(7, C, 3)
+(8, C, 2)
+(9, A, 4)
+(10, B, 1)
+(11, C, 4)
+(12, D, 2)
+(13, A, 4)
+(14, B, 1)
+(15, C, 3)
+(16, D, 2)
+Precedence constraints (i before j), meaning job i must finish before job j starts:
+(5, 12)
+(9, 11)
+(7, 13)
+(1, 12)
+(5, 14)
+(3, 8)
+(1, 4)
+(1, 6)
+(3, 15)
+(6, 7)
+(12, 14)
+(2, 13)
+(11, 16)
+(4, 7)
+(6, 10)
+(2, 14)
+Deadline (all jobs must finish by): 15
+No two jobs on the same machine may overlap in time.
+
+Produce a schedule: an integer start time for every job.
+Reason in prose. Do not write code.
+End your reply with exactly one line, and write nothing after it:
+SCHEDULE: {1: t1, 2: t2, ...}
+
+Your schedule is not valid.
+- jobs 2 and 6 overlap on machine B
+- jobs 7 and 15 overlap on machine C
+- jobs 7 and 8 overlap on machine C
+- jobs 8 and 15 overlap on machine C
+- job 7 starts before job 4 finishes (job 4 must finish before job 7 starts)
+- job 11 starts before job 9 finishes (job 9 must finish before job 11 starts)
+
+Your previous schedule:
+SCHEDULE: {1: 0, 2: 0, 3: 0, 4: 1, 5: 1, 6: 1, 7: 3, 8: 3, 9: 3, 10: 3, 11: 6, 12: 4, 13: 7, 14: 6, 15: 3, 16: 10}
+
+Provide a corrected schedule. Reason in prose. Do not write code.
+End your reply with exactly one line, and write nothing after it:
+SCHEDULE: {1: t1, 2: t2, ...}

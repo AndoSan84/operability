@@ -1,0 +1,296 @@
+{
+  "M1": {
+    "module": "M1",
+    "domain": "asp",
+    "confirmatory": true,
+    "attempt1": {
+      "n": 20,
+      "single_shot_success": {
+        "k": 20,
+        "n": 20,
+        "rate": 1.0,
+        "ci95": [
+          0.8388698745050667,
+          1.0
+        ]
+      },
+      "syntactic_failure": {
+        "k": 0,
+        "n": 20,
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.16113012549493322
+        ]
+      },
+      "eligible_failure": {
+        "k": 0,
+        "n": 20,
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.16113012549493322
+        ]
+      },
+      "unsat_among_eligible": 0,
+      "infrastructure_excluded": 0
+    },
+    "branched_target": 30,
+    "n_branched": 0,
+    "target_reached": false,
+    "n_branched_complete": 0,
+    "n_branched_incomplete": 0,
+    "primary": {
+      "population": "runnable attempt 1 that failed semantically",
+      "n": 0,
+      "verdict": "untestable: no branched instances"
+    },
+    "sensitivity_invalid_schedule_only": {
+      "population": "invalid schedule only (UNSAT excluded)",
+      "n": 0,
+      "verdict": "untestable: no branched instances"
+    },
+    "success_within_3": {
+      "binary": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "diagnostic": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "mcnemar": {
+        "n_pairs": 0,
+        "b": 0,
+        "c": 0,
+        "p": 1.0
+      }
+    },
+    "uptake": {
+      "binary": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "diagnostic": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      }
+    },
+    "regression": {
+      "binary": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "diagnostic": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      }
+    },
+    "contamination": {
+      "shared": {
+        "k": 0,
+        "n": 20,
+        "rate": 0.0,
+        "ci95": [
+          0.0,
+          0.16113012549493322
+        ]
+      },
+      "binary": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "diagnostic": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      }
+    }
+  },
+  "M4": {
+    "module": "M4",
+    "domain": "asp",
+    "confirmatory": false,
+    "attempt1": {
+      "n": 0,
+      "single_shot_success": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "syntactic_failure": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "eligible_failure": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "unsat_among_eligible": 0,
+      "infrastructure_excluded": 0
+    },
+    "branched_target": 6,
+    "n_branched": 0,
+    "target_reached": false,
+    "n_branched_complete": 0,
+    "n_branched_incomplete": 0,
+    "primary": {
+      "population": "runnable attempt 1 that failed semantically",
+      "n": 0,
+      "verdict": "untestable: no branched instances"
+    },
+    "sensitivity_invalid_schedule_only": {
+      "population": "invalid schedule only (UNSAT excluded)",
+      "n": 0,
+      "verdict": "untestable: no branched instances"
+    },
+    "success_within_3": {
+      "binary": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "diagnostic": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "mcnemar": {
+        "n_pairs": 0,
+        "b": 0,
+        "c": 0,
+        "p": 1.0
+      }
+    },
+    "uptake": {
+      "binary": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "diagnostic": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      }
+    },
+    "regression": {
+      "binary": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "diagnostic": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      }
+    },
+    "contamination": {
+      "shared": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "binary": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      },
+      "diagnostic": {
+        "k": 0,
+        "n": 0,
+        "rate": NaN,
+        "ci95": [
+          NaN,
+          NaN
+        ]
+      }
+    }
+  }
+}
