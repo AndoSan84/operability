@@ -7,6 +7,7 @@ not pre-registered. Each script reads only files in this repository.
 |---|---|---|
 | `repair_steps.py` | Experiment 2B (M3): violations removed, introduced and returning per repair step | Table "How repair proceeds" |
 | `edit_locality.py` | Experiments 2A/2B: share of the model's rules kept between attempts; start times kept | same table; "Two conditions, two effects" |
+| `asp_reparse.py` | Earlier ASP run: the answer-parsing defect, re-validated | — (POSTHOC-NOTES §5) |
 | `m2_mental_code_check.py` | Experiment 1 (M2): the CODE_mental programs executed offline; reported path vs. program output | "Correct code, different path" |
 
 The same offline check was applied to the Claude Sonnet maze run of the original submission, whose

@@ -37,3 +37,21 @@ most trials of every condition (no path or no code returned) and was not used.
 
 The Gemini CLI session logs show no tool call in the NL and CODE_mental conditions; in the executed
 condition the shell tool was reported as not found.
+
+## 5. Answer-parsing defect in the earlier ASP run (added 2026-10-01)
+
+The parser of `asp_scheduling_replication/asp_scheduling_test.py` reads the first "schedule {...}" in
+a response rather than the final answer; when the model writes a partial draft first, the draft is
+scored. Re-validated with the original validator and the final SCHEDULE line
+(`analysis/posthoc/asp_reparse.py`), the single-attempt results of that run become NL 17/30 (57%,
+reported 23%) and ASP_mental 7/30 (23%, reported 13%). The 13 NL failures attributed to omitted jobs
+disappear: they were drafts. The executed condition parses the solver output and is not affected
+(47% at the first attempt, 97% within three). The paper does not report this run; its scheduling
+results are those of Experiment 2.
+
+## 6. Earlier maze runs: retries and reasoning settings (added 2026-10-01)
+
+In the Claude Sonnet and Gemini 2.5 Flash maze runs each retry was a new call with the original prompt
+and a pass/fail message, without the previous answer. Gemini 2.5 Flash ran with its default dynamic
+thinking (the CLI session logs record reasoning tokens in 1,104 of 1,193 responses); for the Sonnet
+run the setting was not recorded.
