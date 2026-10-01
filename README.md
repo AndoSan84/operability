@@ -30,7 +30,7 @@ Notes on the earlier runs:
 - `phase1_zone_maze/results/claude_sonnet35_45trials.json` contains 3 trials despite its name; the
   45-maze Claude Sonnet run is `maze_keys_doors_sonnet.json` (27 January 2026, model requested
   through the CLI alias `sonnet`, resolved version not recorded).
-- `asp_scheduling_replication/` contains an earlier scheduling run that the paper does not report;
+- `asp_scheduling_replication/` contains an earlier scheduling run that the paper does not report (its answer parser had a defect, documented in `experiments/POSTHOC-NOTES.md`);
   the scheduling results of the paper are those of Experiment 2.
 
 ## Running the pre-registered experiments
