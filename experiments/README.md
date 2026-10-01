@@ -1,13 +1,12 @@
-# Operability — Experiments A and B (revision)
+# Operability — pre-registered experiments
 
-Pre-registered experiments for the revision of the Operability paper. Everything is under git:
+Pre-registered experiments for the Operability paper. Everything is under git:
 the history and the tags are part of the evidence, since they show that every design, config and
 analysis script was committed before the calls it governs. Read `git log --oneline` alongside this
 file.
 
-This repository contains the experiments of the revised paper, run under a single pre-registered
-protocol. The amendment files record, in order, every decision taken during the work, including the
-reasons for re-running the original experiments; they are kept as written. Analyses and findings that
+This folder contains the pre-registered experiments of the paper, run under a single protocol. The
+amendment files record, in order, every decision taken during the work; they are kept as written. Analyses and findings that
 came after the pre-registered ones are in `POSTHOC-NOTES.md` and `analysis/posthoc/`.
 
 **Names used in the paper.** Experiment 1 (maze) includes module M2 (`results_A_v4/`);
