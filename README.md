@@ -1,7 +1,7 @@
 # Operability
 
-Code, data and pre-registrations for the paper *Operability as Structural Grounding: Conditions for
-Epistemic Appropriation in LLMs*.
+Code, data and pre-registrations for the paper *Operability: On the Conditions for Epistemic
+Appropriation in LLMs*.
 
 The repository has two parts.
 
